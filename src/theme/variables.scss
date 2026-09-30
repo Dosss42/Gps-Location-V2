@@ -68,6 +68,26 @@
   cursor: pointer;
 }
 
+// ── Maps (Leaflet): shared by the home map and the place picker ─────────
+
+// Chrome/Android WebView can leave hairline gaps between tiles (fractional pixel scaling).
+// Give the map background OpenStreetMap's land color, so any gap is invisible.
+.leaflet-container {
+  background: #f2efe9;
+}
+
+// Dark mode: turn the light tiles dark (invert, then rotate hues back so water stays blue),
+// with the matching dark land color behind them.
+.ion-palette-dark {
+  .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+  }
+
+  .leaflet-container {
+    background: #1f1d19;
+  }
+}
+
 // Primary call-to-action button with the brand gradient. Usage: <ion-button class="brand-button">
 ion-button.brand-button {
   --background: var(--app-brand-gradient);

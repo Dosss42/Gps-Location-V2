@@ -33,6 +33,24 @@ export function calculateDistance(
   return EARTH_RADIUS_M * c;
 }
 
+/**
+ * Reads coordinates typed or pasted by the user, e.g. "16.0120, 120.3570" (as copied from
+ * Google Maps) or "16.0120 120.3570". Returns null if it isn't two valid numbers in range.
+ */
+export function parseCoordinates(text: string): { latitude: number; longitude: number } | null {
+  const parts = text.trim().split(/[\s,;]+/).filter(Boolean);
+  if (parts.length !== 2) {
+    return null;
+  }
+  const [latitude, longitude] = parts.map(Number);
+  const valid =
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    Math.abs(latitude) <= 90 &&
+    Math.abs(longitude) <= 180;
+  return valid ? { latitude, longitude } : null;
+}
+
 /** Short distance for the screen: "12 m" below 1 km, "1.2 km" above. */
 export function formatDistance(meters: number): string {
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`;

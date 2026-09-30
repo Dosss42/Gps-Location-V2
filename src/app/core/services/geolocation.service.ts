@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import {
   Geolocation,
@@ -8,6 +8,7 @@ import {
 } from '@capacitor/geolocation';
 
 import type { GpsStatus, LocationPermission, PositionFix } from '../models/position.model';
+import { SettingsRepository } from '../repositories/settings.repository';
 
 /** Continuous updates for the live display (Android-only options are ignored elsewhere). */
 const WATCH_OPTIONS: PositionOptions = {
@@ -39,6 +40,9 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 const LOCATION_OFF_CODES = ['OS-PLUG-GLOC-0007', 'OS-PLUG-GLOC-0009', 'OS-PLUG-GLOC-0017'];
 
+/** Settings key: start location automatically when the app opens ("true" / "false"). */
+const AUTO_START_KEY = 'autoStartLocation';
+
 /**
  * The only place in the app that talks to the Geolocation plugin.
  * Pages read the signals below and call the public methods; they never import the plugin.
@@ -61,14 +65,44 @@ export class GeolocationService {
     () => this._permission() === 'granted' || this._permission() === 'approximate',
   );
 
+  private readonly settingsRepository = inject(SettingsRepository);
+
+  /**
+   * Did the USER turn location on? Location is off until they tap "Get my location"
+   * (or "Tell me where I am"), unless the "start when the app opens" setting is on.
+   */
+  private readonly _active = signal(false);
+  readonly active = this._active.asReadonly();
+
+  /** Settings switch: start location automatically when the app opens (default off). */
+  private readonly _autoStart = signal(false);
+  readonly autoStart = this._autoStart.asReadonly();
+
   /** Resolves to the watch ID once the plugin has started the watch; null when not watching. */
   private watchId: Promise<string> | null = null;
 
+  /** Loads the saved "start when the app opens" choice (at app start). */
+  async loadSettings(): Promise<void> {
+    try {
+      this._autoStart.set((await this.settingsRepository.get(AUTO_START_KEY)) === 'true');
+    } catch {
+      // Storage unavailable: keep the default (off).
+    }
+  }
+
+  setAutoStart(enabled: boolean): void {
+    this._autoStart.set(enabled);
+    this.settingsRepository.set(AUTO_START_KEY, String(enabled)).catch(() => {
+      // Not saved: still applies until the app restarts.
+    });
+  }
+
   /**
-   * Full startup sequence: check permission, ask if never asked, then start live updates.
+   * Turns location ON: check permission, ask if never asked, then start live updates.
    * Safe to call again (e.g. after the user returns from Settings).
    */
   async start(): Promise<void> {
+    this._active.set(true);
     let permission = await this.checkPermission();
     if (this._status() === 'services-off') {
       // Don't start a watch while Location is off: Google Play Services would show its
@@ -82,6 +116,31 @@ export class GeolocationService {
     if (this.hasPermission()) {
       await this.startWatching();
     }
+  }
+
+  /**
+   * Turns location on BECAUSE THE USER ASKED (a button or the "Use your location?" question).
+   * Like start(), plus: if the phone's Location toggle is off, it starts a watch anyway, which
+   * makes Google Play Services show its one-tap "Turn on location?" dialog. That's only OK when
+   * the user asked: doing it automatically would pop that dialog up again and again.
+   */
+  async turnOn(): Promise<void> {
+    await this.start();
+    if (this._status() === 'services-off') {
+      await this.startWatching();
+    }
+  }
+
+  /**
+   * Turns location OFF (the user tapped "Stop location"): stops GPS and forgets the last
+   * position, so the screen no longer shows where the user was.
+   */
+  async stop(): Promise<void> {
+    this._active.set(false);
+    await this.stopWatching();
+    this._fix.set(null);
+    this._status.set('idle');
+    this._errorMessage.set(null);
   }
 
   /** Reads the current permission without showing any dialog. */

@@ -49,6 +49,10 @@ export class LocationDetectionService {
       const fix = this.geo.fix();
       if (fix) {
         untracked(() => this.process(fix, this.store.locations()));
+      } else {
+        // Location was turned off: we no longer know where the user is.
+        this.state = INITIAL_DETECTION_STATE;
+        this._current.set(null);
       }
     });
   }

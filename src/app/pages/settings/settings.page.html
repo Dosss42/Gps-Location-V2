@@ -20,7 +20,13 @@
   </ion-list>
 
   <ion-list>
-    <ion-list-header>Saved places</ion-list-header>
+    <ion-list-header>Location</ion-list-header>
+    <ion-item>
+      <ion-toggle [checked]="geo.autoStart()" (ionChange)="geo.setAutoStart($event.detail.checked)">
+        Start location when the app opens
+        <p class="toggle-hint">Off: the app asks "Use your location?" each time it opens. On: it starts without asking. Automatic announcements need location on.</p>
+      </ion-toggle>
+    </ion-item>
     <ion-item>
       <ion-toggle [checked]="detection.autoAnnounce()" (ionChange)="detection.setAutoAnnounce($event.detail.checked)">
         Announce places automatically
@@ -101,7 +107,6 @@
       <ion-button expand="block" fill="clear" (click)="speech.openVoiceInstaller()">Install more voices</ion-button>
     }
 
-    <ion-button expand="block" fill="clear" color="medium" (click)="showWelcome()">Show welcome screen</ion-button>
 
     @if (speech.errorMessage(); as speechError) {
       <ion-card color="warning">
@@ -114,8 +119,9 @@
       <p>Volume is relative to your phone's media volume.</p>
       <p>Settings are saved on this phone.</p>
       <p>
-        Place names and the map use OpenStreetMap and need internet. To find a place name, your coordinates
-        are sent to nominatim.openstreetmap.org. Map data © OpenStreetMap contributors.
+        Place names, place search and the map use OpenStreetMap and need internet. To find a place name,
+        your coordinates are sent to nominatim.openstreetmap.org; searching sends your search text there.
+        Map data © OpenStreetMap contributors.
       </p>
     </ion-note>
   </div>

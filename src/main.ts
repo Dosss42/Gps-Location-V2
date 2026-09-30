@@ -5,6 +5,7 @@ import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular';
 
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
+import { GeolocationService } from './app/core/services/geolocation.service';
 import { LocationDetectionService } from './app/core/services/location-detection.service';
 import { LocationStore } from './app/core/services/location-store.service';
 import { SpeechService } from './app/core/services/speech.service';
@@ -20,7 +21,14 @@ bootstrapApplication(AppComponent, {
       const theme = inject(ThemeService);
       // Creating the detection service here starts automatic detection for the whole app.
       const detection = inject(LocationDetectionService);
-      return Promise.all([locations.load(), speech.loadSettings(), theme.load(), detection.load()]);
+      const geo = inject(GeolocationService);
+      return Promise.all([
+        locations.load(),
+        speech.loadSettings(),
+        theme.load(),
+        detection.load(),
+        geo.loadSettings(),
+      ]);
     }),
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideIonicAngular(),

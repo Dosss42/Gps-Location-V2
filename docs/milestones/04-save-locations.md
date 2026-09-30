@@ -142,6 +142,40 @@ The "inside radius" badge is the heart of **Milestone 5**. It already works per 
 
 ---
 
+## D5. Update: saving a place without being there
+
+At first a place could only be saved at your current GPS position. **Your request:** save places manually, e.g. the library while sitting at home.
+
+The form (now titled **"Save a Place"**) has a **"Where is it?"** panel with four ways to set the position:
+
+| Way | How | Needs |
+|---|---|---|
+| **Map pin** | Tap the map or drag the orange pin. The orange circle shows the detection radius and follows the slider. | Internet for map tiles |
+| **Search** | Type e.g. "San Miguel Elementary School Calasiao" → **Search** (or Enter) → tap a result: the pin jumps there and the **name is pre-filled** | Internet (Nominatim) |
+| **Paste coordinates** | `16.0120, 120.3570` (as copied from Google Maps) → **Go** | Nothing |
+| **Use my current position** | One GPS reading, on request (asks permission the first time) | GPS |
+
+Other changes:
+- The form **never turns GPS on by itself**. It uses the current position only if location is already on. Otherwise the map starts at your last position, a saved place, or the Philippines.
+- **Save place** on home works even when location is off.
+- `accuracy` is `null` for hand-picked points, so the "GPS accuracy is worse than the radius" warning only appears for GPS positions.
+
+New code:
+- `shared/components/location-picker/`: the map with a draggable SVG pin (`L.divIcon`, because Leaflet's default marker images break with bundlers) and the radius circle. Inputs: `position`, `radiusM`, `fallbackCenter`. Output: `positionChange`.
+- `GeocodingService.search()` + `toSearchResults()`: runs only on button press, at most 1 per 1.1 s (Nominatim policy: no search-as-you-type). The search text is sent to Nominatim, as stated in Settings.
+- `parseCoordinates()` in `geo.utils.ts` (4 tests), and `toSearchResults()` (2 tests)
+- Dark-mode map tiles and the tile-gap background moved to `src/theme/variables.scss`, so **every** map (home + picker) follows the theme
+
+Tested on the emulator with location **off**:
+1. Save place → form, **0 GPS calls**.
+2. Search "San Miguel Elementary School Calasiao" → 1 result → tap → pin + name.
+3. Tap the map → pin moves (16.011776, 120.358455).
+4. Save → SQL `INSERT` with those coordinates.
+5. Home: new orange circle on the map.
+6. Move there → *"You are currently at San Miguel Elementary School."*
+
+---
+
 # Part E: Settings, startup, backup
 
 ## E1. Voice settings are saved

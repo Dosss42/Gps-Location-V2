@@ -1,11 +1,14 @@
 import { Injectable, signal } from '@angular/core';
 import { CapacitorHttp } from '@capacitor/core';
 
-import type { PlaceLookupStatus, PlaceName } from '../models/place.model';
+import type { PlaceLookupStatus, PlaceName, PlaceSearchResult } from '../models/place.model';
 import type { PositionFix } from '../models/position.model';
 import { calculateDistance } from '../utils/geo.utils';
 
 const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
+const NOMINATIM_SEARCH_URL = 'https://nominatim.openstreetmap.org/search';
+/** Nominatim's policy: at most 1 request per second, and no search-as-you-type. */
+const MIN_SEARCH_INTERVAL_MS = 1_100;
 
 /**
  * Nominatim's usage policy requires apps to identify themselves.
@@ -20,6 +23,14 @@ const MIN_INTERVAL_MS = 5_000;
 /** Wait longer after a failure (probably offline) before trying again. */
 const RETRY_AFTER_FAILURE_MS = 30_000;
 const TIMEOUT_MS = 8_000;
+
+/** The parts of one Nominatim "search" result (format=jsonv2) that we use. */
+export interface NominatimSearchItem {
+  name?: string;
+  display_name?: string;
+  lat?: string;
+  lon?: string;
+}
 
 /** The parts of Nominatim's "reverse" JSON (format=jsonv2) that we use. */
 export interface NominatimReverseResponse {
@@ -44,6 +55,37 @@ export class GeocodingService {
 
   private inFlight: Promise<PlaceName | null> | null = null;
   private nextAllowedRequestAt = 0;
+  private lastSearchAt = 0;
+
+  /**
+   * Finds places by name, e.g. "Jollibee Calasiao" (for saving a place without being there).
+   * Only called when the user presses Search, never while typing (Nominatim policy).
+   * PRIVACY: the search text is sent to nominatim.openstreetmap.org. Throws when offline.
+   */
+  async search(query: string): Promise<PlaceSearchResult[]> {
+    const text = query.trim();
+    if (!text) {
+      return [];
+    }
+    const wait = this.lastSearchAt + MIN_SEARCH_INTERVAL_MS - Date.now();
+    if (wait > 0) {
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
+    this.lastSearchAt = Date.now();
+
+    const response = await CapacitorHttp.get({
+      url: NOMINATIM_SEARCH_URL,
+      params: { format: 'jsonv2', q: text, limit: '5', 'accept-language': 'en' },
+      headers: { 'User-Agent': USER_AGENT },
+      connectTimeout: TIMEOUT_MS,
+      readTimeout: TIMEOUT_MS,
+    });
+    if (response.status !== 200) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+    return toSearchResults(data as NominatimSearchItem[]);
+  }
 
   /**
    * Called for every GPS update. Makes a request only when the user has moved
@@ -121,6 +163,25 @@ export class GeocodingService {
       return null;
     }
   }
+}
+
+/** Converts Nominatim search results; skips any without valid coordinates. */
+export function toSearchResults(items: readonly NominatimSearchItem[]): PlaceSearchResult[] {
+  const results: PlaceSearchResult[] = [];
+  for (const item of items ?? []) {
+    const latitude = Number(item.lat);
+    const longitude = Number(item.lon);
+    if (!item.display_name || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      continue;
+    }
+    results.push({
+      name: item.name || item.display_name.split(',')[0],
+      address: item.display_name,
+      latitude,
+      longitude,
+    });
+  }
+  return results;
 }
 
 /** Categories where Nominatim's "name" is just the road or region, not a landmark. */

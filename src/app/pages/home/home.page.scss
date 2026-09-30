@@ -111,4 +111,8 @@
   &.bad {
     background: var(--ion-color-danger);
   }
+
+  &.off {
+    background: var(--ion-color-medium);
+  }
 }

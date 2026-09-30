@@ -1,4 +1,25 @@
-import { calculateDistance, formatDistance } from './geo.utils';
+import { calculateDistance, formatDistance, parseCoordinates } from './geo.utils';
+
+describe('parseCoordinates', () => {
+  it('reads "lat, lng" as copied from Google Maps', () => {
+    expect(parseCoordinates('16.0120, 120.3570')).toEqual({ latitude: 16.012, longitude: 120.357 });
+  });
+
+  it('accepts spaces only, and extra whitespace', () => {
+    expect(parseCoordinates('  16.0120   120.3570 ')).toEqual({ latitude: 16.012, longitude: 120.357 });
+  });
+
+  it('accepts negative values (south / west)', () => {
+    expect(parseCoordinates('-33.8688, 151.2093')).toEqual({ latitude: -33.8688, longitude: 151.2093 });
+  });
+
+  it('rejects text, missing parts and out-of-range values', () => {
+    expect(parseCoordinates('Jollibee')).toBeNull();
+    expect(parseCoordinates('16.0120')).toBeNull();
+    expect(parseCoordinates('95, 120')).toBeNull(); // latitude > 90
+    expect(parseCoordinates('16, 200')).toBeNull(); // longitude > 180
+  });
+});
 
 describe('formatDistance', () => {
   it('shows whole meters below 1 km', () => {

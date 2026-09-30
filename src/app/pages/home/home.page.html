@@ -74,6 +74,9 @@
       @if (isAccuracyPoor()) {
         <p class="hint">Worse than {{ acceptableAccuracy }} m. Move to an open area for better positioning.</p>
       }
+    } @else if (!geo.active()) {
+      <span class="panel-label">Location is off</span>
+      <p class="hint">Tap <strong>Get my location</strong> to see where you are. Location stays on only while the app is open.</p>
     } @else if (geo.status() === 'locating') {
       <div class="searching">
         <ion-spinner name="crescent"></ion-spinner>
@@ -123,16 +126,16 @@
         }
       }
     </section>
-
-    <!-- 3. Map -->
-    <app-location-map
-      class="home-map"
-      [fix]="fix"
-      [places]="store.locations()"
-      [highlightedId]="detection.current()?.id ?? null"
-      (placeSelected)="openPlace($event)"
-    />
   }
+
+  <!-- 3. Map: always visible. Location off → shows your saved places; on → zooms to you. -->
+  <app-location-map
+    class="home-map"
+    [fix]="geo.fix()"
+    [places]="store.locations()"
+    [highlightedId]="detection.current()?.id ?? null"
+    (placeSelected)="openPlace($event)"
+  />
 
   @if (speech.errorMessage(); as speechError) {
     <ion-card color="warning">
@@ -142,10 +145,18 @@
 
   <!-- 4. Main actions -->
   <div class="actions">
-    <ion-button class="brand-button" expand="block" size="large" (click)="refresh()" [disabled]="!geo.hasPermission()">
-      <ion-icon slot="start" name="locate-outline"></ion-icon>
-      Get my location
-    </ion-button>
+    <!-- Location on/off: nothing is tracked until the user taps this -->
+    @if (geo.active()) {
+      <ion-button class="brand-outline-button" expand="block" size="large" fill="outline" color="medium" (click)="toggleLocation()">
+        <ion-icon slot="start" name="stop-circle-outline"></ion-icon>
+        Stop location
+      </ion-button>
+    } @else {
+      <ion-button class="brand-button" expand="block" size="large" (click)="toggleLocation()">
+        <ion-icon slot="start" name="locate-outline"></ion-icon>
+        Get my location
+      </ion-button>
+    }
 
     @if (speech.isSpeaking()) {
       <ion-button class="brand-outline-button" expand="block" size="large" color="danger" fill="outline" (click)="speech.stop()">
@@ -162,7 +173,8 @@
 
   <!-- 5. Secondary actions: icon + label shortcuts -->
   <nav class="shortcuts" aria-label="More actions">
-    <ion-button fill="clear" routerLink="/locations/new" [disabled]="!geo.fix()">
+    <!-- Always enabled: a place can be chosen on the map, you don't need to be there -->
+    <ion-button fill="clear" routerLink="/locations/new">
       <div class="shortcut">
         <ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon>
         <span>Save place</span>

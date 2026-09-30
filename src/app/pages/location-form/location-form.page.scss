@@ -1,0 +1,32 @@
+.search {
+  padding: 8px 0 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.coords-input {
+  flex: 1;
+}
+
+.results {
+  margin-bottom: 8px;
+  border-radius: 12px;
+}
+
+.coords {
+  margin: 8px 0 4px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  margin: 4px 0;
+  font-size: 0.85rem;
+  font-weight: normal;
+  color: var(--ion-color-medium);
+}

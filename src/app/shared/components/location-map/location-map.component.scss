@@ -11,11 +11,7 @@ app-location-map {
     height: 100%;
   }
 
-  // Chrome/Android WebView can leave hairline gaps between tiles (fractional pixel scaling).
-  // Give the map background OpenStreetMap's land color, so any gap is invisible.
-  .leaflet-container {
-    background: #f2efe9;
-  }
+  // (Tile-gap background and dark-mode tiles are shared by all maps: see src/theme/variables.scss.)
 
   // Name labels of saved places (Leaflet tooltips).
   .location-map__label {
@@ -38,18 +34,5 @@ app-location-map {
     right: 8px;
     bottom: 24px;
     z-index: 1000; // above Leaflet's map layers
-  }
-}
-
-// Dark mode: turn the light map tiles dark (invert, then rotate hues back so water stays blue).
-// (ThemeService puts "ion-palette-dark" on <html> when dark mode is on.)
-.ion-palette-dark {
-  app-location-map .leaflet-tile-pane {
-    filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
-  }
-
-  // The land color after the same inversion, so tile gaps stay invisible in dark mode too.
-  app-location-map .leaflet-container {
-    background: #1f1d19;
   }
 }

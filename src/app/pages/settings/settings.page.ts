@@ -23,7 +23,6 @@ import {
   IonTitle,
   IonToggle,
   IonToolbar,
-  NavController,
   type RangeCustomEvent,
   type SegmentCustomEvent,
   type SelectCustomEvent,
@@ -32,8 +31,8 @@ import { addIcons } from 'ionicons';
 import { stopCircleOutline, volumeHighOutline } from 'ionicons/icons';
 
 import type { SpeechSettings } from '../../core/models/speech.model';
+import { GeolocationService } from '../../core/services/geolocation.service';
 import { LocationDetectionService } from '../../core/services/location-detection.service';
-import { OnboardingService } from '../../core/services/onboarding.service';
 import { SpeechService } from '../../core/services/speech.service';
 import { ThemeService, isThemePreference } from '../../core/services/theme.service';
 
@@ -76,8 +75,7 @@ export class SettingsPage implements OnInit {
   protected readonly speech = inject(SpeechService);
   protected readonly theme = inject(ThemeService);
   protected readonly detection = inject(LocationDetectionService);
-  private readonly onboarding = inject(OnboardingService);
-  private readonly navController = inject(NavController);
+  protected readonly geo = inject(GeolocationService);
   protected readonly isAndroid = Capacitor.getPlatform() === 'android';
 
   /**
@@ -131,12 +129,6 @@ export class SettingsPage implements OnInit {
 
   protected testVoice(): void {
     void this.speech.speak(SAMPLE_SENTENCE);
-  }
-
-  /** Shows the Get Started screen again (useful for demos and testing). */
-  protected async showWelcome(): Promise<void> {
-    this.onboarding.reset();
-    await this.navController.navigateRoot('/welcome');
   }
 }
 

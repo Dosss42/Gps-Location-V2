@@ -71,7 +71,7 @@ Global styles aren't limited by Angular's per-component style budget (a warning 
 
 1. **Coordinates panel:** big latitude/longitude (5 decimals ≈ 1 m), accuracy "±5 meters" in green, or red when worse than 30 m
 2. **Current address panel:** orange pin badge, barangay as the big blue title, full address
-3. **Map** (200 px, rounded)
+3. **Map** (200 px, rounded): **always visible**, even with location off. It starts zoomed to fit your saved places, or the Philippines if there are none. When location turns on, it zooms to you (blue dot). Stop location removes the dot and keeps the map.
 4. **Get my location** (gradient) and **Tell me where I am** (outline; turns into "Stop speaking")
 5. **Shortcuts:** Save place · Saved places · Settings
 6. ~~More GPS details~~: **removed**. Altitude, speed and heading don't help answer "where am I?" (phone altitude is often 10–30 m off; speed/heading only mean something while moving). The values are still in `PositionFix` if ever needed.
@@ -109,28 +109,29 @@ Check the preview circles in step 4: the waves must not touch the edge of the ci
 
 ## 5. The Get Started screen
 
-**Files:** `src/app/pages/welcome/` and `src/app/core/services/onboarding.service.ts`
+**Files:** `src/app/pages/welcome/`
 
-**Why it exists:** Android recommends explaining **why** an app needs location **before** the system permission dialog. Before this, the dialog appeared the moment the app opened, with no context.
+**Why it exists:** it explains the app, and **why** it needs location, before anything happens. Android recommends explaining that before the permission dialog.
 
-**Flow:**
+**Flow (current):**
 
 ```text
-App opens → route ''
-   │  redirectTo: () => OnboardingService.isComplete() ? 'home' : 'welcome'
-   ├── first launch → /welcome
-   │       "Get Started" → onboarding.complete() → navController.navigateRoot('/home')
-   │       → home starts GPS → Android permission dialog (the user was just told what to pick)
-   └── later launches → /home directly
+Every app start → route '' → redirectTo: 'welcome'
+   "Get Started" → navController.navigateRoot('/home')   (location still OFF)
+   "Get my location" on home → Android permission dialog (the user was told what to pick)
 ```
+
+**History of this decision:**
+1. First version: shown only on the first launch. A flag in `localStorage` (`OnboardingService`) remembered that "Get Started" was tapped, and a Settings button could show it again.
+2. **Your decision:** show it **every time the app opens**. The flag, `OnboardingService` and the Settings button were removed (no dead code).
+
+"Opening" means a fresh start (after closing it from recent apps, or a phone restart). Switching to another app and back returns to where you were, which is normal Android behaviour.
 
 | Piece | Detail |
 |---|---|
-| `OnboardingService` | Stores one flag in `localStorage` (`whereami.onboardingComplete`). Every access is wrapped in `try/catch`. Losing the flag only means the welcome screen shows once more, which is harmless. Real data goes into SQLite in Milestone 4. |
-| `redirectTo` as a function | Angular can decide the redirect at runtime. `inject()` works inside it. |
-| `navigateRoot('/home')` | Ionic navigation that **clears history**, so the Android back button can't return to the welcome screen |
-| Settings → **Show welcome screen** | Resets the flag and opens the welcome screen (for demos and testing) |
-| "No account, no server" text | True for the MVP. **Must be updated** if Milestone 9 (online reverse geocoding) sends coordinates to a third party. |
+| `redirectTo: 'welcome'` | The empty route always goes to the welcome screen |
+| `navigateRoot('/home')` | Ionic navigation that **clears history**, so the Android back button from home leaves the app instead of returning to Get Started |
+| Privacy text | Updated in Milestone 9: saved places stay on the phone. Place names and the map come from OpenStreetMap when online. |
 
 **Bug found during testing:** the feature icons were grey instead of blue. `.features span { color: medium }` (specificity: 1 class + 1 element) beat `.feature-icon { color: blue }` (1 class), because the icon box is also a `<span>`. The fix was to narrow the text rule to `div > span`.
 
@@ -139,7 +140,7 @@ App opens → route ''
 | Test | Result |
 |---|---|
 | Fresh install (`pm clear`) | ✅ Opens on Get Started: logo, 3 features, permission hint, gradient button |
-| Tap Get Started | ✅ Home page + Android permission dialog |
-| Relaunch the app | ✅ Skips the welcome screen, goes straight to home |
+| Tap Get Started | ✅ Home page, location off (permission is asked on "Get my location") |
+| Relaunch the app | ✅ Shows Get Started again (every start) |
 | Build / 10 unit tests / lint | ✅ |
 | Launcher icon | ⏳ Your step (section 4) |

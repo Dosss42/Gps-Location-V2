@@ -1,0 +1,19 @@
+// Not encapsulated (see the component), so every rule is scoped under the component tag.
+app-location-picker {
+  display: block;
+  height: 240px;
+  overflow: hidden;
+  border: 1px solid var(--app-panel-border);
+  border-radius: 12px;
+
+  .location-picker__canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  // The pin is an SVG inside a Leaflet "divIcon": remove Leaflet's default white box.
+  .location-picker__pin {
+    border: none;
+    background: none;
+  }
+}

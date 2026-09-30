@@ -27,6 +27,16 @@ const DEFAULT_ZOOM = 17;
 const BRAND_BLUE = '#1e88ff';
 const PLACE_ORANGE = '#ff7a2f';
 const INSIDE_GREEN = '#22b35e';
+/** Where the map starts with no position and no saved places. */
+const PHILIPPINES_CENTER: L.LatLngExpression = [12.88, 121.77];
+
+/** The area containing all saved places that have coordinates, or null if there are none. */
+function boundsOf(places: readonly SavedLocation[]): L.LatLngBounds | null {
+  const points = places
+    .filter((place) => place.latitude !== null && place.longitude !== null)
+    .map((place) => L.latLng(place.latitude!, place.longitude!));
+  return points.length > 0 ? L.latLngBounds(points) : null;
+}
 
 /**
  * Shows the user's position on an OpenStreetMap map (Leaflet).
@@ -81,11 +91,17 @@ export class LocationMapComponent {
       }
     });
 
-    // Every later fix: move the dot (runs again whenever the `fix` input changes).
+    // Every later fix: move the dot. No fix (location turned off): remove the dot,
+    // but keep the map and the saved places visible.
     effect(() => {
       const fix = this.fix();
-      if (fix && this.map) {
+      if (!this.map) {
+        return;
+      }
+      if (fix) {
         this.showFix(fix);
+      } else {
+        this.hideFix();
       }
     });
 
@@ -106,13 +122,19 @@ export class LocationMapComponent {
   private createMap(): void {
     const element = this.mapElement().nativeElement;
     // A map must have a center and zoom BEFORE any shape is added to it, otherwise Leaflet
-    // throws "Cannot read properties of undefined (reading 'intersects')". Start at the current
-    // position if we have one, else a world view; showFix() zooms in on the first fix.
+    // throws "Cannot read properties of undefined (reading 'intersects')".
+    // Start at: the current position → else all saved places → else the Philippines.
+    // showFix() zooms in on the user when the first fix arrives.
     const fix = untracked(this.fix);
-    const map = L.map(element, { zoomControl: true }).setView(
-      fix ? [fix.latitude, fix.longitude] : [0, 0],
-      fix ? DEFAULT_ZOOM : 2,
-    );
+    const map = L.map(element, { zoomControl: true });
+    const placeBounds = boundsOf(untracked(this.places));
+    if (fix) {
+      map.setView([fix.latitude, fix.longitude], DEFAULT_ZOOM);
+    } else if (placeBounds) {
+      map.fitBounds(placeBounds.pad(0.3), { maxZoom: DEFAULT_ZOOM });
+    } else {
+      map.setView(PHILIPPINES_CENTER, 5);
+    }
     L.tileLayer(TILE_URL, { maxZoom: 19, attribution: ATTRIBUTION }).addTo(map);
     this.placesLayer.addTo(map);
 
@@ -153,6 +175,14 @@ export class LocationMapComponent {
     }
     // Circles added later are drawn on top: keep the user's dot above the places.
     this.dot?.bringToFront();
+  }
+
+  /** Location was turned off: remove the user's dot and accuracy circle. */
+  private hideFix(): void {
+    this.dot?.remove();
+    this.accuracyCircle?.remove();
+    this.dot = this.accuracyCircle = null;
+    this.following.set(true); // the next fix zooms to the user again
   }
 
   private showFix(fix: PositionFix): void {

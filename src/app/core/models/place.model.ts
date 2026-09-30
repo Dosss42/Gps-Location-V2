@@ -22,6 +22,16 @@ export interface PlaceName {
   fetchedAt: number;
 }
 
+/** One result of searching a place by name (e.g. "Jollibee Calasiao"). */
+export interface PlaceSearchResult {
+  /** Short name, e.g. "Jollibee". */
+  name: string;
+  /** Full address line, to tell similar results apart. */
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
 /** State of the place-name lookup, for the UI. */
 export type PlaceLookupStatus =
   | 'idle' // nothing requested yet

@@ -1,7 +1,4 @@
-import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
-
-import { OnboardingService } from './core/services/onboarding.service';
 
 export const routes: Routes = [
   {
@@ -35,9 +32,9 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/location-form/location-form.page').then((m) => m.LocationFormPage),
   },
   {
-    // App start: first launch → Get Started screen, afterwards → straight to home.
+    // Every app start shows the Get Started screen first.
     path: '',
-    redirectTo: () => (inject(OnboardingService).isComplete() ? 'home' : 'welcome'),
+    redirectTo: 'welcome',
     pathMatch: 'full',
   },
 ];

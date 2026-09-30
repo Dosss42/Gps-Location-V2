@@ -133,6 +133,54 @@ The first version drew the saved-place circles right after creating the map, bef
 
 ---
 
+## 5b. Change: location is OFF until the user turns it on
+
+At first the app started GPS the moment it opened. That's convenient, but it means tracking the user without being asked. **Your decision:** it's better if the app does not get the location automatically.
+
+| When | What happens |
+|---|---|
+| App opens | **No GPS, no permission popup.** A panel says "Location is off. Tap Get my location…", the status line shows a grey dot. |
+| **Get my location** | Turns location on (asks permission the first time) and keeps it live while the app is open. The button becomes **Stop location**. |
+| **Tell me where I am** | If location is off, turns it on first, then speaks |
+| **Stop location** | Stops GPS **and forgets the last position** (the coordinates, map and "You are at" panel disappear, detection resets) |
+| App goes to background → comes back | Restarts GPS **only if location was on** |
+| Settings → **Start location when the app opens** | Default **off**. Turn on to get the old behaviour, e.g. for a user who needs announcements right away. Saved as `autoStartLocation`. |
+
+**Trade-off:** automatic announcements only work while location is on.
+
+### Follow-up: the app ASKS instead of waiting silently
+
+With location off, users had to discover the "Get my location" button, and nothing offered to turn on the phone's GPS. **Your request:** the app should ask.
+
+```text
+App opens → Get Started → "Use your location?"  [Not now]  [Turn on]
+                                                    │          │
+                                     location stays off        geo.turnOn():
+                                     (button still works)        1. permission dialog (first time)
+                                                                 2. phone GPS off? → Google's
+                                                                    "Turn on location?" dialog
+                                                                 3. live tracking starts
+```
+
+- `GeolocationService.turnOn()` = `start()` + "if the phone's Location is off, start a watch anyway". That watch is what makes Google Play Services show its one-tap turn-on dialog. It's used **only for user actions** (the question, Get my location, Tell me where I am, Try again). Automatic restarts still use `start()`, which never triggers the dialog. That prevents the endless dialog loop from Milestone 2 (C4).
+- Settings → "Start location when the app opens" = on: skip the question and turn on directly.
+
+Tested on the emulator with the **phone's Location turned off**:
+1. Open → Get Started → the question appears.
+2. **Turn on** → Google's dialog → **Turn on** → phone Location enabled → coordinates + *"You are currently at Jollibee."*
+3. Restart → **Not now** → 0 GPS calls, "Location is off".
+
+Code:
+- `GeolocationService`: `active` signal (did the user turn it on?), `stop()`, `autoStart` + `loadSettings()` / `setAutoStart()`
+- `HomePage`: `toggleLocation()`, and `ngOnInit` starts only when `autoStart()` is on
+- `LocationDetectionService`: resets when the fix becomes `null`
+
+Tested on the emulator:
+1. Open the app: **0 Geolocation calls**, "Location is off" panel.
+2. Get my location: coordinates + "You are currently at Jollibee."
+3. Stop location: screen cleared, **0 GPS calls** in the next 12 s.
+4. Restart: still off, **0 calls**.
+
 ## 6. Known limitations (honest list)
 
 - **Screen off means no detection.** Android pauses the app, so announcements only work while the app is open. A "pocket mode" needs a foreground service (future).

@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/locations"></ion-back-button>
     </ion-buttons>
-    <ion-title>{{ editing() ? 'Edit Place' : 'Save Current Location' }}</ion-title>
+    <ion-title>{{ editing() ? 'Edit Place' : 'Save a Place' }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -14,32 +14,91 @@
     </ion-card>
   }
 
-  <!-- Where the place will be saved -->
-  <ion-card>
-    <ion-card-content>
-      @if (position(); as position) {
-        <p><strong>Latitude:</strong> {{ position.latitude | number: '1.6-6' }}</p>
-        <p><strong>Longitude:</strong> {{ position.longitude | number: '1.6-6' }}</p>
-        @if (position.accuracy !== null) {
-          <p><strong>Accuracy:</strong> {{ position.accuracy | number: '1.0-0' }} m</p>
+  <!-- WHERE: map pin, search, coordinates, or current position -->
+  <section class="panel">
+    <span class="panel-label">Where is it?</span>
+
+    <ion-searchbar
+      class="search"
+      placeholder="Search, e.g. Jollibee Calasiao"
+      [value]="searchQuery()"
+      (ionInput)="searchQuery.set($event.detail.value ?? '')"
+      (keyup.enter)="search()"
+      [debounce]="0"
+      enterkeyhint="search"
+    ></ion-searchbar>
+    <div class="row">
+      <ion-button size="small" fill="outline" (click)="search()" [disabled]="searching() || !searchQuery().trim()">
+        @if (searching()) {
+          <ion-spinner name="crescent"></ion-spinner>
+        } @else {
+          Search
         }
-      } @else if (locating()) {
-        <p><ion-spinner name="crescent"></ion-spinner> Getting your position…</p>
-      } @else {
-        <p>No position yet.</p>
-      }
-
-      @if (accuracyWarning(); as warning) {
-        <ion-text color="warning"><p>{{ warning }}</p></ion-text>
-      }
-
-      <ion-button fill="outline" size="small" (click)="useCurrentPosition()" [disabled]="locating()">
-        <ion-icon slot="start" name="locate-outline"></ion-icon>
-        {{ editing() ? 'Move to my current position' : 'Refresh position' }}
       </ion-button>
-    </ion-card-content>
-  </ion-card>
+    </div>
 
+    @if (searchResults().length > 0) {
+      <ion-list class="results" lines="full">
+        @for (result of searchResults(); track $index) {
+          <ion-item button (click)="chooseResult(result)">
+            <ion-icon slot="start" name="location-outline" aria-hidden="true"></ion-icon>
+            <ion-label>
+              <h3>{{ result.name }}</h3>
+              <p>{{ result.address }}</p>
+            </ion-label>
+          </ion-item>
+        }
+      </ion-list>
+    }
+    @if (searchMessage(); as message) {
+      <p class="hint">{{ message }}</p>
+    }
+
+    <app-location-picker
+      [position]="position()"
+      [radiusM]="radius()"
+      [fallbackCenter]="mapFallbackCenter()"
+      (positionChange)="onPicked($event)"
+    />
+    <p class="hint">Tap the map or drag the pin to the exact spot.</p>
+
+    @if (position(); as position) {
+      <p class="coords">
+        {{ position.latitude | number: '1.6-6' }}, {{ position.longitude | number: '1.6-6' }}
+        @if (position.accuracy !== null) {
+          <span class="hint"> · GPS ±{{ position.accuracy | number: '1.0-0' }} m</span>
+        }
+      </p>
+    } @else {
+      <p class="coords hint">No point chosen yet.</p>
+    }
+
+    @if (accuracyWarning(); as warning) {
+      <ion-text color="warning"><p class="hint">{{ warning }}</p></ion-text>
+    }
+
+    <div class="row">
+      <ion-input
+        class="coords-input"
+        fill="outline"
+        placeholder="Or paste coordinates: 16.0120, 120.3570"
+        [value]="coordinatesText()"
+        (ionInput)="coordinatesText.set(($event.detail.value ?? '').toString()); coordinatesError.set(false)"
+        (keyup.enter)="applyCoordinates()"
+        [class.ion-invalid]="coordinatesError()"
+        [class.ion-touched]="coordinatesError()"
+        errorText="Use two numbers: latitude, longitude"
+      ></ion-input>
+      <ion-button size="small" fill="outline" (click)="applyCoordinates()" [disabled]="!coordinatesText().trim()">Go</ion-button>
+    </div>
+
+    <ion-button fill="clear" size="small" (click)="useCurrentPosition()" [disabled]="locating()">
+      <ion-icon slot="start" name="locate-outline"></ion-icon>
+      {{ locating() ? 'Getting your position…' : 'Use my current position' }}
+    </ion-button>
+  </section>
+
+  <!-- WHAT: name and details -->
   <form [formGroup]="form" (ngSubmit)="save()">
     <ion-list>
       <ion-item>
@@ -90,10 +149,10 @@
     </ion-list>
 
     <ion-note class="ion-padding-horizontal">
-      <small>GPS is usually accurate to 5–30 m outdoors, so use at least 20–30 m.</small>
+      <small>The orange circle on the map shows this radius. GPS is usually accurate to 5–30 m outdoors, so use at least 20–30 m.</small>
     </ion-note>
 
-    <ion-button class="brand-button ion-margin-top" type="submit" expand="block" [disabled]="saving() || !position()">
+    <ion-button class="brand-button ion-margin-top" type="submit" expand="block" [disabled]="saving()">
       {{ saving() ? 'Saving…' : 'Save' }}
     </ion-button>
   </form>

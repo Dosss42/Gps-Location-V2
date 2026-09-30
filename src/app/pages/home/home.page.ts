@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { App } from '@capacitor/app';
 import type { PluginListenerHandle } from '@capacitor/core';
 import {
+  AlertController,
   IonButton,
   IonButtons,
   IonCard,
@@ -78,6 +79,7 @@ export class HomePage implements OnInit, OnDestroy {
   protected readonly store = inject(LocationStore);
   protected readonly detection = inject(LocationDetectionService);
   private readonly navController = inject(NavController);
+  private readonly alertController = inject(AlertController);
   protected readonly acceptableAccuracy = ACCEPTABLE_ACCURACY_M;
 
   /** Big title of the place card: the barangay if known, else the town, landmark or street. */
@@ -87,7 +89,10 @@ export class HomePage implements OnInit, OnDestroy {
   });
 
   /** One-line status at the bottom of the screen, with a colored dot. */
-  protected readonly status = computed((): { text: string; tone: 'ok' | 'warn' | 'bad' } => {
+  protected readonly status = computed((): { text: string; tone: 'ok' | 'warn' | 'bad' | 'off' } => {
+    if (!this.geo.active()) {
+      return { text: 'Location is off', tone: 'off' };
+    }
     const permission = this.geo.permission();
     if (permission === 'denied' || permission === 'blocked') {
       return { text: 'Location permission needed', tone: 'bad' };
@@ -141,13 +146,40 @@ export class HomePage implements OnInit, OnDestroy {
   private appListeners: PluginListenerHandle[] = [];
 
   async ngOnInit(): Promise<void> {
-    // Stop GPS when the app goes to the background (battery), restart when it comes back.
-    // Restarting also re-checks permission, which catches changes made in Android Settings.
+    // Pause GPS when the app goes to the background (battery). When it comes back, restart it
+    // only if the user had location on. Restarting also re-checks permission, which catches
+    // changes made in Android Settings.
     this.appListeners = await Promise.all([
       App.addListener('pause', () => void this.geo.stopWatching()),
-      App.addListener('resume', () => void this.geo.start()),
+      App.addListener('resume', () => {
+        if (this.geo.active()) {
+          void this.geo.start();
+        }
+      }),
     ]);
-    await this.geo.start();
+
+    // Never track silently: either the user chose "start automatically" in Settings,
+    // or we ASK every time the app opens.
+    if (this.geo.autoStart()) {
+      await this.geo.turnOn();
+    } else {
+      await this.askToTurnOn();
+    }
+  }
+
+  /** The "Use your location?" question shown when the app opens. */
+  private async askToTurnOn(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Use your location?',
+      message:
+        'Where Am I uses GPS while the app is open to show you where you are and tell you when you reach a saved place. ' +
+        'You can turn it off anytime with "Stop location".',
+      buttons: [
+        { text: 'Not now', role: 'cancel' },
+        { text: 'Turn on', handler: () => void this.geo.turnOn() },
+      ],
+    });
+    await alert.present();
   }
 
   ngOnDestroy(): void {
@@ -159,24 +191,23 @@ export class HomePage implements OnInit, OnDestroy {
   protected async allowLocation(): Promise<void> {
     await this.geo.requestPermission();
     if (this.geo.hasPermission()) {
-      await this.geo.startWatching();
+      await this.geo.start();
     }
   }
 
   /** "Try again" button, shown after an error (e.g. Location was off). */
   protected async tryAgain(): Promise<void> {
     await this.geo.stopWatching();
-    await this.geo.start();
-    if (this.geo.status() === 'services-off' && this.geo.hasPermission()) {
-      // The user tapped the button, so it's fine to let Google Play Services
-      // show its one-tap "Turn on location" dialog.
-      await this.geo.startWatching();
-    }
+    await this.geo.turnOn(); // user tapped: Google's "Turn on location?" dialog may appear
   }
 
-  /** "Refresh now" button: asks for one fresh reading immediately. */
-  protected async refresh(): Promise<void> {
-    await this.geo.getCurrentFix();
+  /** "Get my location" / "Stop location" button. */
+  protected async toggleLocation(): Promise<void> {
+    if (this.geo.active()) {
+      await this.geo.stop();
+    } else {
+      await this.geo.turnOn();
+    }
   }
 
   /** Opens a saved place (from the "You are at" panel or a circle on the map). */
@@ -191,6 +222,9 @@ export class HomePage implements OnInit, OnDestroy {
    * 3. the coordinates (always works)
    */
   protected async speakLocation(): Promise<void> {
+    if (!this.geo.active()) {
+      await this.geo.turnOn(); // asking "where am I?" is asking for location: turn it on
+    }
     const fix = await this.geo.getFreshFix();
     if (!fix) {
       await this.speech.speak(NO_LOCATION_MESSAGE);

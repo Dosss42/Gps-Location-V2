@@ -1,4 +1,21 @@
-import { type NominatimReverseResponse, toPlaceName } from './geocoding.service';
+import { type NominatimReverseResponse, toPlaceName, toSearchResults } from './geocoding.service';
+
+describe('toSearchResults', () => {
+  it('converts results and falls back to the first address part as the name', () => {
+    const results = toSearchResults([
+      { name: 'Jollibee', display_name: 'Jollibee, Calasiao, Pangasinan', lat: '16.0121', lon: '120.3571' },
+      { name: '', display_name: 'San Miguel, Calasiao, Pangasinan', lat: '16.01', lon: '120.35' },
+    ]);
+    expect(results).toEqual([
+      { name: 'Jollibee', address: 'Jollibee, Calasiao, Pangasinan', latitude: 16.0121, longitude: 120.3571 },
+      { name: 'San Miguel', address: 'San Miguel, Calasiao, Pangasinan', latitude: 16.01, longitude: 120.35 },
+    ]);
+  });
+
+  it('skips results without valid coordinates', () => {
+    expect(toSearchResults([{ display_name: 'Somewhere', lat: 'abc', lon: '120' }])).toEqual([]);
+  });
+});
 
 /** A real Nominatim response for 16.012, 120.357 (Calasiao, Pangasinan), trimmed. */
 const CALASIAO_ROAD: NominatimReverseResponse = {

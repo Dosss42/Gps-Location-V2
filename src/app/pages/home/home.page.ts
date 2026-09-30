@@ -1,10 +1,9 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, OnDestroy, OnInit, computed, effect, inject, untracked } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { App } from '@capacitor/app';
 import type { PluginListenerHandle } from '@capacitor/core';
 import {
-  AlertController,
   IonButton,
   IonButtons,
   IonCard,
@@ -44,6 +43,7 @@ import {
   buildUnknownLocationMessage,
 } from '../../core/utils/announcement.utils';
 import { LocationMapComponent } from '../../shared/components/location-map/location-map.component';
+import { LocationPromptComponent } from '../../shared/components/location-prompt/location-prompt.component';
 
 /**
  * Fixes less accurate than this are flagged as "too low".
@@ -68,6 +68,7 @@ const ACCEPTABLE_ACCURACY_M = 30;
     IonTitle,
     IonToolbar,
     LocationMapComponent,
+    LocationPromptComponent,
     RouterLink,
   ],
 })
@@ -79,7 +80,9 @@ export class HomePage implements OnInit, OnDestroy {
   protected readonly store = inject(LocationStore);
   protected readonly detection = inject(LocationDetectionService);
   private readonly navController = inject(NavController);
-  private readonly alertController = inject(AlertController);
+
+  /** The "Turn on your location" sheet. */
+  protected readonly showLocationPrompt = signal(false);
   protected readonly acceptableAccuracy = ACCEPTABLE_ACCURACY_M;
 
   /** Big title of the place card: the barangay if known, else the town, landmark or street. */
@@ -158,28 +161,29 @@ export class HomePage implements OnInit, OnDestroy {
       }),
     ]);
 
-    // Never track silently: either the user chose "start automatically" in Settings,
-    // or we ASK every time the app opens.
+    // Never track silently: if the user already said "Turn on location" once (remembered as the
+    // "Start location when the app opens" setting), start directly; otherwise ASK with the sheet.
     if (this.geo.autoStart()) {
       await this.geo.turnOn();
     } else {
-      await this.askToTurnOn();
+      this.showLocationPrompt.set(true);
     }
   }
 
-  /** The "Use your location?" question shown when the app opens. */
-  private async askToTurnOn(): Promise<void> {
-    const alert = await this.alertController.create({
-      header: 'Use your location?',
-      message:
-        'Where Am I uses GPS while the app is open to show you where you are and tell you when you reach a saved place. ' +
-        'You can turn it off anytime with "Stop location".',
-      buttons: [
-        { text: 'Not now', role: 'cancel' },
-        { text: 'Turn on', handler: () => void this.geo.turnOn() },
-      ],
-    });
-    await alert.present();
+  /** Sheet: "Turn on location". Remember it, so the app doesn't ask again next time. */
+  protected async acceptLocationPrompt(): Promise<void> {
+    this.showLocationPrompt.set(false);
+    await this.geo.turnOn();
+    // Only remember "yes" if it actually worked: if the user then refused Android's permission,
+    // don't start (and fail) automatically at every launch.
+    if (this.geo.hasPermission()) {
+      this.geo.setAutoStart(true);
+    }
+  }
+
+  /** Sheet: "Not now" (or swiped away). Not remembered: the app asks again next time. */
+  protected declineLocationPrompt(): void {
+    this.showLocationPrompt.set(false);
   }
 
   ngOnDestroy(): void {

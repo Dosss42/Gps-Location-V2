@@ -194,6 +194,13 @@
     </ion-button>
   </nav>
 
+  <!-- "Turn on your location" bottom sheet, shown when the app opens (until the user says yes once) -->
+  <app-location-prompt
+    [isOpen]="showLocationPrompt()"
+    (accepted)="acceptLocationPrompt()"
+    (declined)="declineLocationPrompt()"
+  />
+
   <!-- 6. Status line -->
   <p class="status" role="status">
     <span class="status-dot" [class]="'status-dot ' + status().tone" aria-hidden="true"></span>

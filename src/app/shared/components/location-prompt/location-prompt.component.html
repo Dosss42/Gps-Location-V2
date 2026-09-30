@@ -1,0 +1,36 @@
+<!-- A "sheet" modal: slides up from the bottom, sized to its content, can be swiped down. -->
+<ion-modal
+  class="location-sheet"
+  [isOpen]="isOpen()"
+  [initialBreakpoint]="1"
+  [breakpoints]="[0, 1]"
+  (didDismiss)="onDidDismiss()"
+>
+  <ng-template>
+    <div class="sheet" role="dialog" aria-labelledby="location-sheet-title">
+      <img class="sheet-logo" src="assets/logo/logo.svg" alt="" width="64" height="64" />
+
+      <h2 id="location-sheet-title">Turn on your location</h2>
+      <p class="lead">Where Am I uses GPS to show where you are and to tell you when you reach a saved place.</p>
+
+      <ul class="points">
+        <li>
+          <ion-icon name="phone-portrait-outline" aria-hidden="true"></ion-icon>
+          <span>Only used while the app is open</span>
+        </li>
+        <li>
+          <ion-icon name="stop-circle-outline" aria-hidden="true"></ion-icon>
+          <span>Stop it anytime with "Stop location"</span>
+        </li>
+      </ul>
+
+      <ion-button class="brand-button" expand="block" size="large" (click)="choose(true)">
+        <ion-icon slot="start" name="locate-outline"></ion-icon>
+        Turn on location
+      </ion-button>
+      <ion-button class="not-now" expand="block" fill="clear" color="medium" (click)="choose(false)">Not now</ion-button>
+
+      <p class="note">After you turn it on, the app remembers your choice. Change it anytime in Settings.</p>
+    </div>
+  </ng-template>
+</ion-modal>

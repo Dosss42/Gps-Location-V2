@@ -24,7 +24,7 @@
     <ion-item>
       <ion-toggle [checked]="geo.autoStart()" (ionChange)="geo.setAutoStart($event.detail.checked)">
         Start location when the app opens
-        <p class="toggle-hint">Off: the app asks "Use your location?" each time it opens. On: it starts without asking. Automatic announcements need location on.</p>
+        <p class="toggle-hint">Turns on by itself after you choose "Turn on location" once. Off: the app asks each time it opens. Automatic announcements need location on.</p>
       </ion-toggle>
     </ion-item>
     <ion-item>

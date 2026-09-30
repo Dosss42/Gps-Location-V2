@@ -165,7 +165,17 @@ App opens → Get Started → "Use your location?"  [Not now]  [Turn on]
 - `GeolocationService.turnOn()` = `start()` + "if the phone's Location is off, start a watch anyway". That watch is what makes Google Play Services show its one-tap turn-on dialog. It's used **only for user actions** (the question, Get my location, Tell me where I am, Try again). Automatic restarts still use `start()`, which never triggers the dialog. That prevents the endless dialog loop from Milestone 2 (C4).
 - Settings → "Start location when the app opens" = on: skip the question and turn on directly.
 
-Tested on the emulator with the **phone's Location turned off**:
+### Follow-up 2: a modern sheet, and ask only until the user says yes
+
+- The plain alert box was replaced by a **bottom sheet** (`shared/components/location-prompt/`): an Ionic sheet modal (`breakpoints [0, 1]`, `--height: auto`) with the logo, a title, two short points, a gradient **Turn on location** button and a quiet **Not now**. It can be swiped down (counts as Not now).
+- **Remembered "yes":** after **Turn on location**, *if permission was actually granted*, the app sets `autoStart = true` (the Settings switch "Start location when the app opens"). Next launch: no sheet, location turns on directly.
+- **"Not now" is not remembered:** the sheet appears again next launch.
+- To be asked again, switch "Start location when the app opens" off in Settings.
+- The component reports the choice through `(accepted)` / `(declined)`. Both buttons close the sheet the same way, and the choice is reported in `didDismiss`, so swiping or tapping outside also counts as "declined".
+
+Tested on the emulator: sheet appears → Turn on location → tracking + announcement → restart → **no sheet**, location on automatically.
+
+Tested on the emulator with the **phone's Location turned off** (previous version, alert box):
 1. Open → Get Started → the question appears.
 2. **Turn on** → Google's dialog → **Turn on** → phone Location enabled → coordinates + *"You are currently at Jollibee."*
 3. Restart → **Not now** → 0 GPS calls, "Location is off".

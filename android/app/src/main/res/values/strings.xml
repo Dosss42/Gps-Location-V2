@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Where Am I</string>
+    <string name="title_activity_main">Where Am I</string>
+    <string name="package_name">www.gpslocationv2.whereami</string>
+    <string name="custom_url_scheme">www.gpslocationv2.whereami</string>
+</resources>

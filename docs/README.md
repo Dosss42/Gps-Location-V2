@@ -8,14 +8,16 @@ It detects which **saved location** the user is at and says it out loud.
 | Document | What it covers |
 |---|---|
 | [architecture.md](architecture.md) | Concept, features, architecture, data flow, detection algorithm, database, hierarchy, GPS limits, TTS, plugins, Android permissions, risks |
+| [guides/android-build-run-apk.md](guides/android-build-run-apk.md) | **Everyday reference:** build + sync, Android Studio, emulator, fake GPS, building/installing an APK, debugging |
 | [milestones/01-project-setup.md](milestones/01-project-setup.md) | Environment, app identity, adding Android, running on a device, debugging |
+| [milestones/02-gps.md](milestones/02-gps.md) | Location permissions, Geolocation plugin, position model, GPS service, live coordinates |
 
 ## Milestone progress
 
 | # | Milestone | Status |
 |---|---|---|
-| 1 | Project Setup | 🟡 In progress |
-| 2 | GPS | ⬜ Not started |
+| 1 | Project Setup | ✅ Done (runs on Pixel 8 emulator, debug APK builds) |
+| 2 | GPS | 🟡 In progress |
 | 3 | Text-to-Speech | ⬜ Not started |
 | 4 | Save Locations (SQLite + CRUD) | ⬜ Not started |
 | 5 | Distance Detection (Haversine) | ⬜ Not started |
@@ -34,6 +36,7 @@ Update this table when a milestone passes its "done when" checklist.
 | Angular (standalone components) | 22.1 |
 | Ionic Angular | 9 |
 | Capacitor | 8.5.2 |
+| @capacitor/geolocation | 8.2.2 (Milestone 2) |
 | TypeScript | 6.0 |
 | Test runner | Vitest 4 |
 | Node.js (dev machine) | 26.2 |

@@ -187,8 +187,17 @@ ionic cap run android -l --external
 
 ## 7. Notes / log
 
-Fill this in as you go:
+- **appId chosen:** `www.gpslocationv2.whereami`. It works, but it doesn't follow the reverse-domain convention (`com.…`). Kept by choice. It can't be changed after publishing.
+- **appName:** `Where Am I`, set in `capacitor.config.ts` and `android/app/src/main/res/values/strings.xml`. `appName` is copied into `strings.xml` only by `cap add`; `cap sync` doesn't update it.
+- **Device used:** `Pixel_8` emulator, Android API 37.2, "Google APIs PlayStore" image, shown inside Android Studio's Running Devices panel.
+- **Result:** Build successful. The Ionic starter page ("Blank / Ready to create an app?") runs on the emulator.
+- **Problems hit and how they were solved:**
+  - First `cap add` used the old appId. Fixed by deleting `android/` (freshly generated, nothing edited) and running `npm run build; if ($?) { npx cap add android }` again.
+  - `npm install` printed "5 vulnerabilities (1 critical)". They're all in dev tools (Vitest, Capacitor's iOS tooling) and not shipped in the app. **Don't** run `npm audit fix --force`: it downgrades `@capacitor/cli` and breaks version matching. Revisit Vitest in Milestone 5.
+  - Build warning "browsers … fall outside Angular's browser support". Harmless, caused by the old `.browserslistrc` from the starter template. It can be deleted.
+  - Android Studio suggested an AGP upgrade and a Gradle Daemon toolchain migration. Both dismissed (see the guide below).
+  - `@capacitor/android` pinned to exactly `8.5.2` with `--save-exact`, so it matches `@capacitor/core`.
 
-- appId chosen:
-- Device used (phone model / emulator):
-- Problems hit and how they were solved:
+## 8. See also
+
+- [Guide: Build, Run on the Emulator, and Create an APK](../guides/android-build-run-apk.md), the everyday reference for building, the emulator, fake GPS locations, APKs and debugging.

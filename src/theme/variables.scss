@@ -1,2 +1,88 @@
 // For information on how to create your own theme, please refer to:
 // https://ionicframework.com/docs/theming/
+
+// Brand colors, taken from the logo (src/assets/logo/logo.svg).
+:root {
+  --app-brand-start: #1e88ff;
+  --app-brand-end: #7b61ff;
+  --app-brand-gradient: linear-gradient(135deg, var(--app-brand-start), var(--app-brand-end));
+
+  // Panels (the rounded boxes on the home screen), light mode.
+  --app-panel-background: rgba(255, 255, 255, 0.85);
+  --app-panel-border: rgba(0, 0, 0, 0.08);
+}
+
+// Dark mode values. ThemeService puts "ion-palette-dark" on <html> when dark mode is on.
+:root.ion-palette-dark {
+  --app-panel-background: rgba(255, 255, 255, 0.05);
+  --app-panel-border: rgba(255, 255, 255, 0.1);
+}
+
+// ── Reusable building blocks ─────────────────────────────────────────────
+
+// A rounded box with a subtle border. Usage: <section class="panel">
+.panel {
+  display: block;
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid var(--app-panel-border);
+  border-radius: 16px;
+  background: var(--app-panel-background);
+}
+
+// Small uppercase caption inside a panel ("LATITUDE", "CURRENT ADDRESS").
+.panel-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ion-color-medium);
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+// Colored square with an icon, e.g. the orange pin next to "CURRENT ADDRESS".
+.icon-badge {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ff9f43, #ff6b35);
+  color: #fff;
+  font-size: 18px;
+
+  &.success {
+    background: linear-gradient(135deg, #34c759, #1faa4b);
+  }
+}
+
+// A panel that marks "you are here" (e.g. inside a saved place): green edge.
+.panel.at-place {
+  border-color: rgba(34, 179, 94, 0.5);
+  cursor: pointer;
+}
+
+// Primary call-to-action button with the brand gradient. Usage: <ion-button class="brand-button">
+ion-button.brand-button {
+  --background: var(--app-brand-gradient);
+  --background-activated: var(--app-brand-gradient);
+  --border-radius: 14px;
+  --box-shadow: 0 8px 24px rgba(76, 110, 255, 0.35);
+  --color: #fff;
+  font-weight: 600;
+  text-transform: none;
+}
+
+// Secondary button: outlined in brand blue. Usage: <ion-button class="brand-outline-button" fill="outline">
+ion-button.brand-outline-button {
+  --border-radius: 14px;
+  --border-width: 1.5px;
+  font-weight: 600;
+  text-transform: none;
+}

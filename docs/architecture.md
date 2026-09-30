@@ -66,6 +66,17 @@ src/app/
     └── accuracy-badge/       reused on home + detail
 ```
 
+> **As built (Milestone 4):** `location.repository.ts` became a folder `core/repositories/`:
+> - `LocationRepository` (interface) with `SqliteLocationRepository` (phone) and `MemoryLocationRepository` (browser)
+> - `SettingsRepository`
+>
+> Also added:
+> - `core/services/location-store.service.ts`: the in-memory list as a signal
+> - `core/services/geocoding.service.ts` and `shared/components/location-map/` (Milestones 8–9)
+> - pages `welcome/`, `location-form/`
+>
+> See [milestones/04-save-locations.md](milestones/04-save-locations.md).
+
 ### Why it's structured this way
 
 - **Pages only display and react.** They never call Capacitor plugins or write SQL.
@@ -292,6 +303,8 @@ Node.js, Android Studio (includes SDK and emulator), JDK 21, `JAVA_HOME` and `AN
 - **Background:** location even when closed or in another app. Needs an extra permission, strict Google Play review and a visible justification.
 
 **This project does not need background location for the MVP.** Known limitation: when the screen turns off, the WebView pauses and updates stop. A future "pocket mode" would use a foreground service with a persistent notification.
+
+> **Decision update (2026-09-30):** Milestones 8 and 9 were pulled forward at the user's request (Leaflet + OpenStreetMap tiles, Nominatim place names). Speak order of preference: **saved location (from Milestone 4–5) → OpenStreetMap place name → coordinates**. Details: [milestones/08-09-map-and-place-names.md](milestones/08-09-map-and-place-names.md).
 
 ## 13. Map decision (Milestone 8, optional)
 

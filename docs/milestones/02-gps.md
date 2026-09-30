@@ -4,11 +4,13 @@
 
 | Part | Content | Status |
 |---|---|---|
-| A | Concepts: how Android location works, permissions, the plugin API | ✅ Written |
-| B | Install the plugin, Android manifest, position model (exercise) | ✅ Written, your turn |
-| C | `GeolocationService`: permission logic, one-shot fix, live updates | ⏳ Next |
-| D | Home page UI | ⏳ |
-| E | Testing on the emulator (fake GPS, deny permission, Location off) | ⏳ |
+| A | Concepts: how Android location works, permissions, the plugin API | ✅ |
+| B | Install the plugin, Android manifest, position model | ✅ |
+| C | `GeolocationService`: permission logic, one-shot fix, live updates | ✅ |
+| D | Home page UI | ✅ |
+| E | Testing on the emulator (fake GPS, Location off) | ✅ Tests 1–6 pass · tests 7–11 are yours |
+
+> Parts B–D were built by Claude with explanations (your choice: "I build it, you explain"). The B3/B4 solutions below match the code in the repo. Use the review exercise at the end to check your understanding.
 
 ---
 
@@ -177,6 +179,32 @@ What each line does:
 - If you forget the two `uses-permission` lines, the plugin throws error **`OS-PLUG-GLOC-0018`** ("permissions are not declared in manifest").
 - **Keep `INTERNET`.** Live reload needs it, and Milestone 9 might too. GPS itself doesn't.
 
+> **Nothing changes on screen during Part B.** B1–B4 are plugin setup, permissions and types. The coordinates first appear on the home page in **Part D**. Test on the **Android emulator**, not the browser preview (`ionic serve` / VS Code preview, the iPhone-shaped frame): there, GPS comes from the PC's browser and `requestPermissions()` isn't available.
+
+## B2.5 Smoke test: prove the plugin works, with no app code
+
+After B1 + B2:
+1. Press **▶ Run** in Android Studio. Manifest changes need a reinstall.
+2. Emulator: **⋮ (Extended controls) → Location →** choose a spot → **Set Location**.
+3. Desktop Chrome: `chrome://inspect/#devices` → **inspect** under the app → **Console**.
+4. Type:
+
+```js
+await Capacitor.Plugins.Geolocation.checkPermissions()
+// → { location: 'prompt', coarseLocation: 'prompt' }   (never asked yet)
+
+await Capacitor.Plugins.Geolocation.requestPermissions()
+// dialog appears on the emulator → choose Precise + While using the app
+// → { location: 'granted', coarseLocation: 'granted' }
+
+await Capacitor.Plugins.Geolocation.getCurrentPosition({ enableHighAccuracy: true })
+// → { timestamp: ..., coords: { latitude: <what you set>, longitude: ..., accuracy: ... } }
+```
+
+`window.Capacitor.Plugins` gives direct access to native plugins, which is handy for experiments. **App code must never do this.** The app imports the plugin in `GeolocationService` so it's typed and testable.
+
+If `getCurrentPosition` fails, compare the error code with the table in A3. Most likely the emulator's Location toggle is off (0007), or no location was set in Extended controls (0010, timeout).
+
 ## B3. Exercise: design the position model
 
 The plugin's `Position` type has iOS extras, a nested `coords` object, and names we don't control. We'll convert it into **our own interface** once, inside the service. Every other part of the app then uses our type.
@@ -273,12 +301,158 @@ Order matters in code: check `granted` first, then `approximate`, then the rest.
 
 ---
 
-## Part C preview (next session)
+# Part C: `GeolocationService`
 
-`src/app/core/services/geolocation.service.ts` will contain:
-- signals: `permission`, `status`, `fix`, `errorMessage`
-- `checkPermission()` / `requestPermission()`: your B4 table as code, with web handled separately
-- `getCurrentFix()`: one-shot, for Speak / Save
-- `startWatching()` / `stopWatching()`: live updates, cleaned up correctly
-- `toPositionFix()`: plugin `Position` → your `PositionFix`
-- `toFriendlyError()`: error codes → the messages in A3
+**File:** `src/app/core/services/geolocation.service.ts`. It's **the only file that imports `@capacitor/geolocation`.**
+
+## C1. Shape of the service
+
+```text
+                 ┌───────────────── GeolocationService ─────────────────┐
+ HomePage ──────►│ start() · checkPermission() · requestPermission()    │──► @capacitor/geolocation
+ (calls)         │ getCurrentFix() · startWatching() · stopWatching()   │
+                 │                                                      │
+ HomePage ◄──────│ signals (read-only): permission · status · fix ·     │
+ (reads)         │                      errorMessage · hasPermission    │
+                 └──────────────────────────────────────────────────────┘
+```
+
+**Private writable, public read-only signals.** `_fix = signal(...)` is private, and `fix = _fix.asReadonly()` is public. Pages can **read** the state but can't **change** it, so there's exactly one place where GPS state changes.
+
+`hasPermission` is a **`computed`** signal: a value derived from other signals that recalculates automatically when `permission` changes.
+
+## C2. The methods
+
+| Method | What it does | Used by |
+|---|---|---|
+| `start()` | The full sequence: check permission → if never asked, ask → if allowed, start watching. **Stops early if Location is off** (see C4). Safe to call repeatedly. | Page startup, app resume, Try again |
+| `checkPermission()` | Calls `checkPermissions()` and converts the result with `toLocationPermission()` (your B4 table). If it throws, Location is off, so status becomes `services-off`. | `start()` |
+| `requestPermission()` | Native: shows the Android dialog. Web: `requestPermissions()` doesn't exist, so it requests one position to make the **browser** show its prompt. | `start()`, "Allow location" button |
+| `getCurrentFix()` | One fresh reading (`maximumAge: 0`). Returns `PositionFix` or `null`. | "Refresh now" now, Speak/Save later |
+| `startWatching()` | Starts `watchPosition`. Each callback delivers either a position (→ `acceptPosition`) or an error (→ `handleError`). Does nothing if already watching. | `start()` |
+| `stopWatching()` | `clearWatch`, so battery stops draining | App pause, leaving the page |
+| `acceptPosition()` *(private)* | Converts to `PositionFix`, stores it, sets status `tracking`, clears errors | Both one-shot and watch |
+| `handleError()` *(private)* | Reads the error code, sets status (`services-off` or `error`) and a friendly message. On `0003` it re-checks permission so the right help card appears. | Everything |
+
+**Pure helper functions** at the bottom of the file are exported so they can be unit-tested later without a phone:
+- `toLocationPermission(status)`: the B4 table
+- `toPositionFix(position)`: plugin shape → our shape. `?? null` turns a missing value into `null`.
+- `getErrorCode(error)`: safely reads `error.code`. Errors are typed `unknown`, so we **check before using**.
+
+## C3. Why `watchId` is a Promise, not a string
+
+`watchPosition()` returns `Promise<string>`, and the ID only arrives after the native side starts. If the user leaves the page **before** that happens and we stored a plain string, `stopWatching()` would find nothing to clear and the watch would leak. Storing the **Promise** means `stopWatching()` can `await` it and always gets the ID.
+
+## C4. The bug we found while testing: endless "Turn on location" dialog
+
+In the first version, `start()` ignored "Location is off" and started a watch anyway. On the emulator this happened:
+
+```text
+watch starts → Location off → Google Play Services shows "Turn on location?" dialog
+  → dialog covers the app → Android sends 'pause'  → we stop the watch
+  → user taps "No thanks"  → Android sends 'resume' → start() → new watch
+  → dialog again → … forever
+```
+
+**Fix:**
+1. `start()` returns early when `checkPermission()` reports `services-off`.
+2. `checkPermission()` resets `services-off` → `idle` when the check succeeds (Location was turned back on).
+3. Only the **user's tap** on "Try again" may start a watch while Location is off. That shows Google's one-tap "Turn on" dialog **once**.
+
+**Lesson:** lifecycle events (`pause`/`resume`) fire for **system dialogs too**, not only when the user switches apps. Any "restart on resume" logic must not itself cause a dialog.
+
+---
+
+# Part D: The home page
+
+**Files:** `src/app/home/home.page.ts`, `home.page.html`, `home.page.scss`
+
+## D1. `home.page.ts`: lifecycle and buttons
+
+| Code | Purpose |
+|---|---|
+| `geo = inject(GeolocationService)` | Gets the one shared service instance (`providedIn: 'root'`) |
+| `ACCEPTABLE_ACCURACY_M = 30` | Threshold for "accuracy too low". **A starting guess**: tune it by walking the real campus. Moves to Settings in Milestone 6. |
+| `isAccuracyPoor = computed(...)` | `true` when the latest fix is worse than the threshold |
+| `ngOnInit()` | Registers `App` **pause** → `stopWatching()` and **resume** → `start()`, then calls `start()` |
+| `ngOnDestroy()` | Removes listeners, stops watching (cleanup) |
+| `allowLocation()` / `tryAgain()` / `refresh()` | The three buttons |
+
+Why resume calls `start()`, not just `startWatching()`: the user may have gone to **Settings** and changed the permission. `start()` re-checks first.
+
+> **Later:** in Milestone 6, automatic detection must run no matter which page is open, so this pause/resume handling will move from the page into a service.
+
+## D2. `home.page.html`: what the user sees
+
+Built with Angular's control flow (`@if`, `@switch`):
+
+| Block | Shows when |
+|---|---|
+| Yellow card + **Allow location** | `permission === 'denied'` (said no once, can ask again) |
+| Red card with Settings steps | `permission === 'blocked'` (Android won't ask again) |
+| Yellow card "Precise location is off" | `permission === 'approximate'` |
+| Red card + **Try again** | `errorMessage()` isn't null |
+| Current Location list | `fix()` exists: latitude/longitude (6 decimals ≈ 0.1 m), accuracy (green or red), altitude, speed (m/s × 3.6 = km/h), heading, time |
+| Spinner "Searching for GPS signal…" | No fix yet and `status === 'locating'` |
+| **Refresh now** | Always, disabled without permission |
+| Small grey debug line | Always, **for learning**: shows `permission` and `status` live. Remove later. |
+
+`@if (geo.fix(); as fix)` reads the signal **once** and names the result `fix`. Inside the block, TypeScript knows `fix` isn't null. The same goes for `@if (fix.altitude !== null)`.
+
+---
+
+# Part E: Testing (done on the Pixel 8 emulator)
+
+| # | Test | How | Result |
+|---|---|---|---|
+| 1 | First launch asks permission | Fresh install (`adb shell pm clear www.gpslocationv2.whereami`) | ✅ Android dialog: Precise/Approximate, While using / Only this time / Don't allow |
+| 2 | Coordinates appear | Emulator location set to 16.0120, 120.3570 (Calasiao) → "While using the app" | ✅ Lat 16.012000, Lng 120.356998, accuracy 5 m (green), `permission: granted · status: tracking` |
+| 3 | Live updates | Moved emulator ~110 m north (16.0130) without touching the app | ✅ Screen updated by itself within ~5 s |
+| 4 | Location turned off | Emulator Location toggle off → relaunch | ✅ (after the C4 fix) Red card "Location is turned off…", `status: services-off`, no dialog loop |
+| 5 | Recovery | Location on → **Try again** | ✅ Back to `tracking` with coordinates |
+| 5b | Browser preview (`ionic serve`) | Opened the app in the PC browser | ✅ Real coordinates from Wi-Fi/IP positioning, accuracy **183 m in red** (correct: a PC has no GPS), altitude/speed/heading "Not available". Found `status: locating` shown while a fix existed; fixed so `startWatching()` keeps `tracking` when a fix is already present. |
+| 6 | Build / unit tests / lint | `npm run build`, `npx ng test --watch=false`, `npx ng lint` | ✅ All pass |
+
+**Your turn: remaining tests** (write the results here):
+
+| # | Test | How | Expected | Result |
+|---|---|---|---|---|
+| 7 | Deny once | Fresh install → **Don't allow** | Yellow card + "Allow location" button, `permission: denied` | |
+| 8 | Deny twice | Tap "Allow location" → **Don't allow** again | Red "blocked" card with Settings steps, `permission: blocked` | |
+| 9 | Fix from Settings | Settings → Apps → Where Am I → Permissions → Location → Allow while using → return to app | Coordinates appear by themselves (resume → `start()`) | |
+| 10 | Approximate | Fresh install → choose **Approximate** | Yellow "Precise location is off" card, accuracy in km range | |
+| 11 | Real phone | Run on your phone outdoors, then indoors | Outdoors: accuracy under 10–15 m. Indoors: worse, maybe red. **Write down the real numbers**: they decide the threshold later. | |
+
+Resetting the app to "never asked" between tests:
+
+```powershell
+adb -s emulator-5554 shell pm clear www.gpslocationv2.whereami
+```
+
+Setting the emulator's location from the terminal (note: **longitude first**):
+
+```powershell
+adb -s emulator-5554 emu geo fix 120.3570 16.0120
+```
+
+---
+
+## Review exercise (after reading Parts C and D)
+
+Answer in your own words:
+
+1. In `geolocation.service.ts`, why are `_fix` and the other writable signals `private`? What could go wrong if the home page could call `fix.set(...)`?
+2. What happens, step by step, when you press the phone's **Home** button while the app is tracking, then open the app again? Name the methods that run.
+3. The emulator test showed `Altitude: 0 m` and `Heading: 357°`. Are these real measurements? (Hint: what does an emulator actually know?)
+4. **Small code change:** make the accuracy line show the threshold, e.g. `5 m (limit 30 m)`. Which file do you edit, and which existing property do you use?
+
+## Done when
+
+- [x] Plugin installed and synced, manifest permissions added
+- [x] `PositionFix`, `LocationPermission`, `GpsStatus` models
+- [x] `GeolocationService` with permission handling, one-shot and watch, error messages
+- [x] Home page shows live latitude, longitude, accuracy (+ altitude/speed/heading/time)
+- [x] Location-off handled without a dialog loop
+- [ ] Tests 7–11 done and results written above
+- [ ] Review exercise answered
+- [ ] Committed: `git commit -m "Milestone 2: GPS permissions and live location"`

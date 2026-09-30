@@ -1,0 +1,40 @@
+<ion-content [fullscreen]="true" class="welcome">
+  <main class="wrap">
+    <img class="logo" src="assets/logo/logo.svg" alt="" width="120" height="120" />
+
+    <h1>Where Am I?</h1>
+    <p class="tagline">Hear where you are, anytime.</p>
+
+    <ul class="features">
+      <li>
+        <span class="feature-icon"><ion-icon name="navigate-outline" aria-hidden="true"></ion-icon></span>
+        <div>
+          <strong>Live location</strong>
+          <span>See your GPS coordinates and how accurate they are.</span>
+        </div>
+      </li>
+      <li>
+        <span class="feature-icon"><ion-icon name="volume-high-outline" aria-hidden="true"></ion-icon></span>
+        <div>
+          <strong>Spoken aloud</strong>
+          <span>Tap Speak and the app tells you where you are.</span>
+        </div>
+      </li>
+      <li>
+        <span class="feature-icon"><ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon></span>
+        <div>
+          <strong>Private by design</strong>
+          <span>No account. Your saved places stay on this phone. Place names and the map come from OpenStreetMap when you're online.</span>
+        </div>
+      </li>
+    </ul>
+
+    <div class="bottom">
+      <p class="permission-note">
+        Next, Android will ask for your location. Choose <strong>Precise</strong> and
+        <strong>While using the app</strong>.
+      </p>
+      <ion-button class="brand-button" expand="block" size="large" (click)="getStarted()">Get Started</ion-button>
+    </div>
+  </main>
+</ion-content>

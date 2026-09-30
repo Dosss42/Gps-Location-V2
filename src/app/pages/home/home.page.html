@@ -1,0 +1,190 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Where Am I?</ion-title>
+    <ion-buttons slot="end">
+      <!-- Quick light/dark switch (Settings also offers "System") -->
+      <ion-button (click)="theme.toggle()" [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
+        <ion-icon slot="icon-only" [name]="theme.isDark() ? 'sunny-outline' : 'moon-outline'"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding home">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Where Am I?</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <!-- Permission help: a different message for each situation -->
+  @switch (geo.permission()) {
+    @case ('denied') {
+      <ion-card color="warning">
+        <ion-card-content>
+          <p>This app needs your location to tell you where you are.</p>
+          <ion-button expand="block" (click)="allowLocation()">Allow location</ion-button>
+        </ion-card-content>
+      </ion-card>
+    }
+    @case ('blocked') {
+      <ion-card color="danger">
+        <ion-card-content>
+          <p><strong>Location permission is blocked.</strong> Android won't ask again, so turn it on manually:</p>
+          <p>Settings → Apps → Where Am I → Permissions → Location → <em>Allow only while using the app</em>, and turn on <em>Use precise location</em>.</p>
+          <p>Then come back to this app.</p>
+        </ion-card-content>
+      </ion-card>
+    }
+    @case ('approximate') {
+      <ion-card color="warning">
+        <ion-card-content>
+          <p><strong>Precise location is off.</strong> Your position may be off by a few kilometers, so places can't be recognized.</p>
+          <p>Settings → Apps → Where Am I → Permissions → Location → turn on <em>Use precise location</em>.</p>
+        </ion-card-content>
+      </ion-card>
+    }
+  }
+
+  <!-- Errors: Location turned off, timeout, other failures -->
+  @if (geo.errorMessage(); as message) {
+    <ion-card color="danger">
+      <ion-card-content>
+        <p>{{ message }}</p>
+        <ion-button expand="block" fill="outline" color="light" (click)="tryAgain()">Try again</ion-button>
+      </ion-card-content>
+    </ion-card>
+  }
+
+  <!-- 1. Coordinates -->
+  <section class="panel" aria-label="Current coordinates">
+    @if (geo.fix(); as fix) {
+      <div class="coords">
+        <div>
+          <span class="panel-label">Latitude</span>
+          <span class="coord-value">{{ fix.latitude | number: '1.5-5' }}</span>
+        </div>
+        <div>
+          <span class="panel-label">Longitude</span>
+          <span class="coord-value">{{ fix.longitude | number: '1.5-5' }}</span>
+        </div>
+      </div>
+      <span class="panel-label">Accuracy</span>
+      <span class="accuracy" [class.poor]="isAccuracyPoor()">±{{ fix.accuracy | number: '1.0-0' }} meters</span>
+      @if (isAccuracyPoor()) {
+        <p class="hint">Worse than {{ acceptableAccuracy }} m. Move to an open area for better positioning.</p>
+      }
+    } @else if (geo.status() === 'locating') {
+      <div class="searching">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Searching for GPS signal…</span>
+      </div>
+    } @else {
+      <p class="hint">No location yet.</p>
+    }
+  </section>
+
+  <!-- 2a. Inside a saved place (automatic detection) -->
+  @if (detection.current(); as place) {
+    <section class="panel at-place" role="button" tabindex="0" (click)="openPlace(place.id)" (keydown.enter)="openPlace(place.id)" aria-label="Open this saved place">
+      <div class="panel-heading">
+        <span class="icon-badge success"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon></span>
+        <span class="panel-label">Saved place</span>
+      </div>
+      <h2 class="place-title">You are at {{ place.name }}</h2>
+      <p class="place-address">{{ place.category || 'Saved place' }} · within {{ place.radiusM }} m</p>
+    </section>
+  }
+
+  @if (geo.fix(); as fix) {
+    <!-- 2b. Place name from OpenStreetMap (needs internet) -->
+    <section class="panel" aria-label="Current address">
+      <div class="panel-heading">
+        <span class="icon-badge"><ion-icon name="location" aria-hidden="true"></ion-icon></span>
+        <span class="panel-label">Current address</span>
+      </div>
+      @if (geocoding.place(); as place) {
+        <h2 class="place-title">{{ placeTitle() }}</h2>
+        <p class="place-address">{{ place.fullAddress }}</p>
+      } @else {
+        @switch (geocoding.status()) {
+          @case ('unavailable') {
+            <p class="place-address">Place name unavailable. Check your internet connection.</p>
+          }
+          @case ('not-found') {
+            <p class="place-address">No address found for this spot.</p>
+          }
+          @default {
+            <div class="searching">
+              <ion-spinner name="crescent"></ion-spinner>
+              <span>Looking up the place name…</span>
+            </div>
+          }
+        }
+      }
+    </section>
+
+    <!-- 3. Map -->
+    <app-location-map
+      class="home-map"
+      [fix]="fix"
+      [places]="store.locations()"
+      [highlightedId]="detection.current()?.id ?? null"
+      (placeSelected)="openPlace($event)"
+    />
+  }
+
+  @if (speech.errorMessage(); as speechError) {
+    <ion-card color="warning">
+      <ion-card-content>{{ speechError }}</ion-card-content>
+    </ion-card>
+  }
+
+  <!-- 4. Main actions -->
+  <div class="actions">
+    <ion-button class="brand-button" expand="block" size="large" (click)="refresh()" [disabled]="!geo.hasPermission()">
+      <ion-icon slot="start" name="locate-outline"></ion-icon>
+      Get my location
+    </ion-button>
+
+    @if (speech.isSpeaking()) {
+      <ion-button class="brand-outline-button" expand="block" size="large" color="danger" fill="outline" (click)="speech.stop()">
+        <ion-icon slot="start" name="stop-circle-outline"></ion-icon>
+        Stop speaking
+      </ion-button>
+    } @else {
+      <ion-button class="brand-outline-button" expand="block" size="large" fill="outline" (click)="speakLocation()">
+        <ion-icon slot="start" name="volume-high-outline"></ion-icon>
+        Tell me where I am
+      </ion-button>
+    }
+  </div>
+
+  <!-- 5. Secondary actions: icon + label shortcuts -->
+  <nav class="shortcuts" aria-label="More actions">
+    <ion-button fill="clear" routerLink="/locations/new" [disabled]="!geo.fix()">
+      <div class="shortcut">
+        <ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon>
+        <span>Save place</span>
+      </div>
+    </ion-button>
+    <ion-button fill="clear" routerLink="/locations">
+      <div class="shortcut">
+        <ion-icon name="list-outline" aria-hidden="true"></ion-icon>
+        <span>Saved places</span>
+      </div>
+    </ion-button>
+    <ion-button fill="clear" routerLink="/settings">
+      <div class="shortcut">
+        <ion-icon name="settings-outline" aria-hidden="true"></ion-icon>
+        <span>Settings</span>
+      </div>
+    </ion-button>
+  </nav>
+
+  <!-- 6. Status line -->
+  <p class="status" role="status">
+    <span class="status-dot" [class]="'status-dot ' + status().tone" aria-hidden="true"></span>
+    {{ status().text }}
+  </p>
+</ion-content>

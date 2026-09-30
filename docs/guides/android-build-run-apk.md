@@ -44,6 +44,23 @@ Then press **▶ Run** in Android Studio again.
 
 ---
 
+### Why localhost (browser) and the emulator look different
+
+They're two different devices running the same code:
+
+| Difference | Why | How to make them match |
+|---|---|---|
+| Dark vs light | By default (**System**) the app follows the device theme, and the PC may be dark while the emulator is light. Each device also remembers its own Light/Dark choice. | Use the same choice on both: the sun/moon button on home, or Settings → Appearance. (Phone theme: Quick Settings → **Dark theme**, or `adb -s emulator-5554 shell cmd uimode night yes`.) |
+| Newer vs older code | `ionic serve` reloads instantly. The emulator runs the **installed APK**. | Build + sync + ▶ Run |
+| Which page opens | Each device has its own storage (e.g. the "Get Started seen" flag) | Settings → **Show welcome screen** |
+| Location values | Browser: PC Wi-Fi/IP estimate (~100 m+). Emulator: fake coordinates you set. | Extended controls → Location |
+| Size | Android Studio shows the emulator zoomed out (e.g. 21%) | Zoom the Running Devices panel |
+| Native features | Browser uses web fallbacks (no permission dialog, browser voices) | Trust the emulator/phone for native behavior |
+
+**Use localhost for fast layout work. Use the emulator or phone as the truth for permissions, GPS and speech.**
+
+---
+
 ## 3. Open the project in Android Studio
 
 ```powershell
@@ -218,4 +235,6 @@ Use chrome://inspect first. Most problems in this project show up in the JavaScr
 | Run button greyed out | Gradle sync still running or failed. Try File → Sync Project with Gradle Files. |
 | `adb devices` shows `unauthorized` | Accept the prompt on the phone |
 | `INSTALL_FAILED_UPDATE_INCOMPATIBLE` / signatures don't match | Uninstall the old app from the device, then install again |
+| `npx cap run android` fails with `'gradlew' is not recognized` | Happens on this PC, probably because of the spaces in the folder path. Use Android Studio's ▶ Run instead, or build with `android\gradlew.bat -p android assembleDebug` and install with `adb install -r android\app\build\outputs\apk\debug\app-debug.apk` |
+| Emulator shows a black screen and the app won't open; Logcat is full of `android.hardware.uwb … panicked` or `com.google.android.nfc has died` | The emulator itself became unstable (seen after ~10 hours of uptime). This isn't your app. Restart it: Device Manager → ⋮ → **Cold Boot Now**, or `adb -s emulator-5554 reboot`. Afterwards, set the fake location again. |
 | Emulator location never arrives | Set a location in Extended controls → Location, and make sure Location is on in the emulator's quick settings |

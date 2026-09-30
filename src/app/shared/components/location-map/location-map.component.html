@@ -1,0 +1,7 @@
+<div #mapElement class="location-map__canvas" role="img" aria-label="Map of your current location"></div>
+
+@if (!following()) {
+  <ion-button class="location-map__recenter" size="small" (click)="recenter()" aria-label="Center the map on my location">
+    <ion-icon slot="icon-only" name="locate-outline"></ion-icon>
+  </ion-button>
+}

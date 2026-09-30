@@ -1,0 +1,83 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/locations"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ location()?.name ?? 'Place' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  @if (location(); as location) {
+    <ion-card>
+      <ion-card-header>
+        <ion-card-subtitle>{{ typeLabel() }} · {{ location.category || 'No category' }}</ion-card-subtitle>
+        <ion-card-title>{{ location.name }}</ion-card-title>
+      </ion-card-header>
+      @if (location.description) {
+        <ion-card-content>{{ location.description }}</ion-card-content>
+      }
+    </ion-card>
+
+    <ion-list inset="true">
+      @if (location.latitude !== null && location.longitude !== null) {
+        <ion-item>
+          <ion-label>Latitude</ion-label>
+          <ion-note slot="end">{{ location.latitude | number: '1.6-6' }}</ion-note>
+        </ion-item>
+        <ion-item>
+          <ion-label>Longitude</ion-label>
+          <ion-note slot="end">{{ location.longitude | number: '1.6-6' }}</ion-note>
+        </ion-item>
+      }
+      @if (location.radiusM !== null) {
+        <ion-item>
+          <ion-label>Detection radius</ion-label>
+          <ion-note slot="end">{{ location.radiusM }} m</ion-note>
+        </ion-item>
+      }
+      <ion-item>
+        <ion-label>Distance from you</ion-label>
+        <!-- Compare with null explicitly: "@if (distanceM(); as d)" would treat 0 m as "no value". -->
+        @if (distanceM() !== null) {
+          <ion-note slot="end">{{ formatDistance(distanceM()!) }}</ion-note>
+        } @else {
+          <ion-note slot="end">Unknown</ion-note>
+        }
+      </ion-item>
+      @if (isInside()) {
+        <ion-item>
+          <ion-badge color="success">You are inside this place's radius</ion-badge>
+        </ion-item>
+      }
+      <ion-item>
+        <ion-label>Saved</ion-label>
+        <ion-note slot="end">{{ location.createdAt | date: 'medium' }}</ion-note>
+      </ion-item>
+    </ion-list>
+
+    <div class="actions ion-padding">
+      @if (speech.isSpeaking()) {
+        <ion-button expand="block" color="danger" (click)="speech.stop()">
+          <ion-icon slot="start" name="stop-circle-outline"></ion-icon>
+          Stop
+        </ion-button>
+      } @else {
+        <ion-button class="brand-button" expand="block" (click)="speak()">
+          <ion-icon slot="start" name="volume-high-outline"></ion-icon>
+          Speak
+        </ion-button>
+      }
+      <ion-button expand="block" fill="outline" [routerLink]="['/locations', location.id, 'edit']">
+        <ion-icon slot="start" name="create-outline"></ion-icon>
+        Edit
+      </ion-button>
+      <ion-button expand="block" fill="clear" color="danger" (click)="confirmDelete()">
+        <ion-icon slot="start" name="trash-outline"></ion-icon>
+        Delete
+      </ion-button>
+    </div>
+  } @else {
+    <p class="ion-padding">This place no longer exists.</p>
+  }
+</ion-content>

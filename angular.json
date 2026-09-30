@@ -33,7 +33,8 @@
                 "output": "assets"
               }
             ],
-            "styles": ["src/global.scss", "src/theme/variables.scss"],
+            "styles": ["node_modules/leaflet/dist/leaflet.css", "src/global.scss", "src/theme/variables.scss"],
+            "allowedCommonJsDependencies": ["leaflet"],
             "scripts": [],
             "browser": "src/main.ts"
           },

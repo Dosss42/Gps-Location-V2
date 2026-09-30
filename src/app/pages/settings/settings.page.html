@@ -1,0 +1,122 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Settings</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-list>
+    <ion-list-header>Appearance</ion-list-header>
+    <ion-item lines="none">
+      <ion-segment [value]="theme.preference()" (ionChange)="onThemeChange($event)" aria-label="Theme">
+        <ion-segment-button value="system"><ion-label>System</ion-label></ion-segment-button>
+        <ion-segment-button value="light"><ion-label>Light</ion-label></ion-segment-button>
+        <ion-segment-button value="dark"><ion-label>Dark</ion-label></ion-segment-button>
+      </ion-segment>
+    </ion-item>
+  </ion-list>
+
+  <ion-list>
+    <ion-list-header>Saved places</ion-list-header>
+    <ion-item>
+      <ion-toggle [checked]="detection.autoAnnounce()" (ionChange)="detection.setAutoAnnounce($event.detail.checked)">
+        Announce places automatically
+        <p class="toggle-hint">Says "You are currently at …" when you walk into a saved place.</p>
+      </ion-toggle>
+    </ion-item>
+  </ion-list>
+
+  <ion-list>
+    <ion-list-header>Voice</ion-list-header>
+
+    <ion-item>
+      <ion-select
+        label="Language"
+        interface="modal"
+        [value]="speech.settings().lang"
+        (ionChange)="onLanguageChange($event)"
+      >
+        @for (tag of languageOptions(); track tag) {
+          <ion-select-option [value]="tag">{{ languageLabel(tag) }}</ion-select-option>
+        }
+      </ion-select>
+    </ion-item>
+
+    <ion-item>
+      <ion-range
+        [min]="0.5"
+        [max]="2"
+        [step]="0.1"
+        [value]="speech.settings().rate"
+        (ionInput)="onSliderInput('rate', $event)"
+      >
+        <div slot="label">Speed <ion-note>{{ speech.settings().rate | number: '1.1-1' }}×</ion-note></div>
+      </ion-range>
+    </ion-item>
+
+    <ion-item>
+      <ion-range
+        [min]="0.5"
+        [max]="2"
+        [step]="0.1"
+        [value]="speech.settings().pitch"
+        (ionInput)="onSliderInput('pitch', $event)"
+      >
+        <div slot="label">Pitch <ion-note>{{ speech.settings().pitch | number: '1.1-1' }}</ion-note></div>
+      </ion-range>
+    </ion-item>
+
+    <ion-item>
+      <ion-range
+        [min]="0"
+        [max]="1"
+        [step]="0.1"
+        [value]="speech.settings().volume"
+        (ionInput)="onSliderInput('volume', $event)"
+      >
+        <div slot="label">Volume <ion-note>{{ speech.settings().volume | percent }}</ion-note></div>
+      </ion-range>
+    </ion-item>
+  </ion-list>
+
+  <div class="ion-padding actions">
+    @if (speech.isSpeaking()) {
+      <ion-button expand="block" color="danger" (click)="speech.stop()">
+        <ion-icon slot="start" name="stop-circle-outline"></ion-icon>
+        Stop
+      </ion-button>
+    } @else {
+      <ion-button expand="block" (click)="testVoice()">
+        <ion-icon slot="start" name="volume-high-outline"></ion-icon>
+        Test voice
+      </ion-button>
+    }
+
+    <ion-button expand="block" fill="outline" (click)="speech.resetSettings()">Reset to defaults</ion-button>
+
+    @if (isAndroid) {
+      <ion-button expand="block" fill="clear" (click)="speech.openVoiceInstaller()">Install more voices</ion-button>
+    }
+
+    <ion-button expand="block" fill="clear" color="medium" (click)="showWelcome()">Show welcome screen</ion-button>
+
+    @if (speech.errorMessage(); as speechError) {
+      <ion-card color="warning">
+        <ion-card-content>{{ speechError }}</ion-card-content>
+      </ion-card>
+    }
+
+    <ion-note class="hint">
+      <p>Messages are written in English. Choosing another language changes the voice and accent, not the words.</p>
+      <p>Volume is relative to your phone's media volume.</p>
+      <p>Settings are saved on this phone.</p>
+      <p>
+        Place names and the map use OpenStreetMap and need internet. To find a place name, your coordinates
+        are sent to nominatim.openstreetmap.org. Map data © OpenStreetMap contributors.
+      </p>
+    </ion-note>
+  </div>
+</ion-content>

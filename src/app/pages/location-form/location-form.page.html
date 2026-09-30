@@ -1,0 +1,100 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/locations"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ editing() ? 'Edit Place' : 'Save Current Location' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  @if (errorMessage(); as error) {
+    <ion-card color="danger">
+      <ion-card-content>{{ error }}</ion-card-content>
+    </ion-card>
+  }
+
+  <!-- Where the place will be saved -->
+  <ion-card>
+    <ion-card-content>
+      @if (position(); as position) {
+        <p><strong>Latitude:</strong> {{ position.latitude | number: '1.6-6' }}</p>
+        <p><strong>Longitude:</strong> {{ position.longitude | number: '1.6-6' }}</p>
+        @if (position.accuracy !== null) {
+          <p><strong>Accuracy:</strong> {{ position.accuracy | number: '1.0-0' }} m</p>
+        }
+      } @else if (locating()) {
+        <p><ion-spinner name="crescent"></ion-spinner> Getting your position…</p>
+      } @else {
+        <p>No position yet.</p>
+      }
+
+      @if (accuracyWarning(); as warning) {
+        <ion-text color="warning"><p>{{ warning }}</p></ion-text>
+      }
+
+      <ion-button fill="outline" size="small" (click)="useCurrentPosition()" [disabled]="locating()">
+        <ion-icon slot="start" name="locate-outline"></ion-icon>
+        {{ editing() ? 'Move to my current position' : 'Refresh position' }}
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <ion-list>
+      <ion-item>
+        <ion-input
+          label="Name"
+          labelPlacement="stacked"
+          formControlName="name"
+          placeholder="e.g. Building 1"
+          [counter]="true"
+          [maxlength]="60"
+          errorText="Please enter a name."
+        ></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-textarea
+          label="Description"
+          labelPlacement="stacked"
+          formControlName="description"
+          placeholder="Optional, e.g. Main academic building"
+          [autoGrow]="true"
+          [counter]="true"
+          [maxlength]="300"
+        ></ion-textarea>
+      </ion-item>
+
+      <ion-item>
+        <ion-select label="Category" formControlName="category" interface="popover">
+          @for (category of categories; track category) {
+            <ion-select-option [value]="category">{{ category }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-select label="Type" formControlName="type" interface="popover">
+          @for (type of types; track type.value) {
+            <ion-select-option [value]="type.value">{{ type.label }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-range formControlName="radiusM" [min]="minRadius" [max]="maxRadius" [step]="5">
+          <div slot="label">Detection radius <ion-note>{{ radius() }} m</ion-note></div>
+        </ion-range>
+      </ion-item>
+    </ion-list>
+
+    <ion-note class="ion-padding-horizontal">
+      <small>GPS is usually accurate to 5–30 m outdoors, so use at least 20–30 m.</small>
+    </ion-note>
+
+    <ion-button class="brand-button ion-margin-top" type="submit" expand="block" [disabled]="saving() || !position()">
+      {{ saving() ? 'Saving…' : 'Save' }}
+    </ion-button>
+  </form>
+</ion-content>

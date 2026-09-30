@@ -34,4 +34,6 @@
 
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+/* Dark mode is switched by ThemeService (System / Light / Dark in Settings), which adds or removes
+   the "ion-palette-dark" class on <html>. Before: dark.system.css (always followed the phone). */
+@import '@ionic/angular/css/palettes/dark.class.css';

@@ -1,0 +1,50 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Saved Places</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  @if (store.loadError(); as error) {
+    <ion-card color="danger">
+      <ion-card-content>{{ error }}</ion-card-content>
+    </ion-card>
+  }
+
+  @if (items().length === 0) {
+    <div class="empty ion-padding">
+      <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+      <h2>No saved places yet</h2>
+      <p>Go to a place you want the app to recognize, then tap <strong>+</strong> to save it.</p>
+    </div>
+  } @else {
+    <ion-list>
+      @for (item of items(); track item.location.id) {
+        <ion-item [routerLink]="['/locations', item.location.id]" [detail]="true">
+          <ion-icon slot="start" name="location-outline" color="primary" aria-hidden="true"></ion-icon>
+          <ion-label>
+            <h2>{{ item.location.name }}</h2>
+            <p>
+              {{ item.location.category || 'No category' }}
+              @if (item.location.radiusM !== null) {
+                · {{ item.location.radiusM }} m radius
+              }
+            </p>
+          </ion-label>
+          @if (item.distanceM !== null) {
+            <ion-note slot="end">{{ formatDistance(item.distanceM) }}</ion-note>
+          }
+        </ion-item>
+      }
+    </ion-list>
+  }
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button routerLink="/locations/new" aria-label="Save current location">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

@@ -1,0 +1,86 @@
+.welcome {
+  // A soft glow of the brand colors behind the content (works in light and dark mode).
+  --background: radial-gradient(circle at 20% 0%, rgba(30, 136, 255, 0.18), transparent 55%),
+    radial-gradient(circle at 100% 100%, rgba(123, 97, 255, 0.16), transparent 50%),
+    var(--ion-background-color, #fff);
+}
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: calc(48px + var(--ion-safe-area-top, 0px)) 24px calc(24px + var(--ion-safe-area-bottom, 0px));
+}
+
+.logo {
+  align-self: center;
+  border-radius: 28px;
+  box-shadow: 0 12px 32px rgba(76, 110, 255, 0.35);
+}
+
+h1 {
+  margin: 24px 0 4px;
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.tagline {
+  margin: 0 0 32px;
+  text-align: center;
+  color: var(--ion-color-medium);
+  font-size: 1.05rem;
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  strong {
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  // Only the description text (div > span), not the .feature-icon span.
+  div > span {
+    color: var(--ion-color-medium);
+    font-size: 0.95rem;
+  }
+}
+
+.feature-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(76, 110, 255, 0.12);
+  color: var(--app-brand-start);
+  font-size: 22px;
+}
+
+// Pushes the note and the button to the bottom of the screen.
+.bottom {
+  margin-top: auto;
+  padding-top: 32px;
+}
+
+.permission-note {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+}

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">Where Am I? logo</title>
+  <defs>
+    <linearGradient id="logo-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1E88FF"/>
+      <stop offset="1" stop-color="#7B61FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded-square background with the brand gradient -->
+  <rect width="512" height="512" rx="112" fill="url(#logo-bg)"/>
+
+  <!-- The glyph: a map pin ("where") with sound waves ("I am told") -->
+  <g transform="translate(0 -20)">
+    <!-- Soft shadow under the pin tip -->
+    <ellipse cx="256" cy="442" rx="58" ry="12" fill="#FFFFFF" opacity="0.25"/>
+
+    <!-- Pin: head circle (r=110) + tangent lines to the tip; the hole is cut out with evenodd -->
+    <path fill="#FFFFFF" fill-rule="evenodd"
+          d="M256 430 L160.74 265 A110 110 0 1 1 351.26 265 Z
+             M212 210 a44 44 0 1 0 88 0 a44 44 0 1 0 -88 0 Z"/>
+
+    <!-- Sound waves: arcs around the pin head, inner solid, outer faded -->
+    <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="22">
+      <path d="M378.87 123.96 A150 150 0 0 1 378.87 296.04"/>
+      <path d="M133.13 123.96 A150 150 0 0 0 133.13 296.04"/>
+      <path d="M421.37 106.67 A195 195 0 0 1 421.37 313.33" opacity="0.6"/>
+      <path d="M90.63 106.67 A195 195 0 0 0 90.63 313.33" opacity="0.6"/>
+    </g>
+  </g>
+</svg>

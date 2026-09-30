@@ -1,0 +1,114 @@
+// Page-specific layout only. Shared look (.panel, .panel-label, buttons) is in src/theme/variables.scss.
+
+.home {
+  // Soft brand glow behind the content, like the welcome screen.
+  --background: radial-gradient(circle at 0% 0%, rgba(30, 136, 255, 0.14), transparent 45%),
+    radial-gradient(circle at 100% 100%, rgba(123, 97, 255, 0.12), transparent 45%),
+    var(--ion-background-color, #fff);
+}
+
+.coords {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.coord-value,
+.accuracy {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.accuracy {
+  font-size: 1.2rem;
+  color: var(--ion-color-success);
+
+  &.poor {
+    color: var(--ion-color-danger);
+  }
+}
+
+.place-title {
+  margin: 8px 0 4px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--app-brand-start);
+}
+
+.place-address,
+.hint {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+}
+
+.searching {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-map {
+  height: 200px;
+  margin-bottom: 12px;
+  border: 1px solid var(--app-panel-border);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0 8px;
+}
+
+.shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 8px;
+
+  ion-button {
+    height: auto;
+    --padding-top: 8px;
+    --padding-bottom: 8px;
+  }
+}
+
+.shortcut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  text-transform: none;
+
+  ion-icon {
+    font-size: 24px;
+  }
+}
+
+.status {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ion-color-warning);
+
+  &.ok {
+    background: var(--ion-color-success);
+  }
+
+  &.bad {
+    background: var(--ion-color-danger);
+  }
+}
